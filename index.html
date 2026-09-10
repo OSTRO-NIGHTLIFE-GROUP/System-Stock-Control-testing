@@ -807,6 +807,206 @@
           padding: 16px;
         }
       }
+      @media (max-width: 640px) {
+        #loginScreen {
+          align-items: flex-start;
+          padding: 16px;
+        }
+        .login-card {
+          margin-top: 8vh;
+          padding: 28px 20px;
+        }
+        .shell {
+          display: block;
+        }
+        .sidebar {
+          width: 100%;
+          height: auto;
+          max-height: none;
+          padding: 12px 0 0;
+          border-right: none;
+          border-bottom: 1px solid var(--line);
+          overflow: hidden;
+        }
+        .sidebar .brand {
+          padding: 0 16px 12px;
+          margin-bottom: 0;
+        }
+        .sidebar .brand .kicker,
+        .sidebar .brand h2,
+        .nav-item span.label,
+        .nav-badge {
+          display: block;
+        }
+        .nav-sep {
+          display: none;
+        }
+        .sidebar .brand .kicker {
+          font-size: 10px;
+        }
+        .sidebar .brand h2 {
+          font-size: 16px;
+        }
+        #navItems {
+          display: flex;
+          gap: 4px;
+          padding: 8px 12px 10px;
+          overflow-x: auto;
+          scrollbar-width: thin;
+        }
+        .nav-item {
+          flex: 0 0 auto;
+          justify-content: flex-start;
+          gap: 8px;
+          padding: 9px 11px;
+          border-left: none;
+          border-bottom: 2px solid transparent;
+          border-radius: 4px;
+          white-space: nowrap;
+        }
+        .nav-item.active {
+          border-left-color: transparent;
+          border-bottom-color: var(--amber);
+        }
+        .nav-item .nl {
+          gap: 7px;
+        }
+        .main {
+          min-height: calc(100vh - 108px);
+        }
+        .topbar {
+          height: auto;
+          min-height: 60px;
+          align-items: stretch;
+          flex-direction: column;
+          padding: 12px;
+          gap: 10px;
+        }
+        .topbar-left,
+        .topbar-right {
+          width: 100%;
+        }
+        .topbar-left .outlet-select,
+        .topbar-left .outlet-select select,
+        .topbar-left .page-title {
+          width: 100%;
+        }
+        .topbar-left .outlet-select select {
+          padding: 9px 10px;
+        }
+        .topbar-right {
+          justify-content: space-between;
+        }
+        .topbar-right .btn {
+          flex: 0 0 auto;
+        }
+        .content {
+          padding: 16px 12px 24px;
+          overflow-x: hidden;
+        }
+        .page-title {
+          font-size: 20px;
+        }
+        .page-sub {
+          line-height: 1.45;
+        }
+        .cards-row {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          margin-bottom: 16px;
+        }
+        .stat-card {
+          min-width: 0;
+          padding: 13px 12px;
+        }
+        .stat-card .value {
+          font-size: 20px;
+          overflow-wrap: anywhere;
+        }
+        .panel {
+          padding: 14px;
+          margin-bottom: 14px;
+          overflow-x: auto;
+        }
+        .panel-head {
+          align-items: flex-start;
+        }
+        .panel-head h3 {
+          line-height: 1.35;
+        }
+        .toolbar {
+          width: 100%;
+        }
+        .toolbar > * {
+          min-width: 0 !important;
+          flex: 1 1 140px;
+        }
+        .toolbar .btn {
+          flex: 1 1 auto;
+        }
+        .search-input,
+        .toolbar select,
+        .toolbar input {
+          width: 100%;
+          min-width: 0;
+        }
+        table {
+          min-width: 680px;
+        }
+        .line-form {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 10px;
+        }
+        .line-form .field,
+        .line-form > .btn {
+          width: 100% !important;
+          min-width: 0 !important;
+        }
+        .file-drop {
+          overflow-wrap: anywhere;
+        }
+        .modal-overlay {
+          align-items: flex-start;
+          padding: 12px;
+        }
+        .modal,
+        .modal.wide {
+          max-width: none;
+          max-height: calc(100vh - 24px);
+          padding: 18px 14px;
+        }
+        .modal-actions {
+          justify-content: stretch;
+        }
+        .modal-actions .btn {
+          flex: 1 1 140px;
+        }
+        .toast {
+          right: 12px;
+          bottom: 12px;
+          left: 12px;
+          max-width: none;
+        }
+      }
+      @media (max-width: 360px) {
+        .cards-row {
+          grid-template-columns: 1fr;
+        }
+        .topbar-right {
+          align-items: center;
+        }
+        .user-badge {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .modal-actions .btn {
+          flex-basis: 100%;
+        }
+      }
     </style>
   </head>
   <body>
