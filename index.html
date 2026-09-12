@@ -6,1010 +6,10 @@
     <title>Ostro Nightlife — Stock Control</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <style>
-      :root {
-        --bg: #15161a;
-        --panel: #1d1f24;
-        --panel-2: #24262c;
-        --line: #31333b;
-        --text: #edebe4;
-        --muted: #9a9ca6;
-        --amber: #e5a54b;
-        --amber-dim: #3a2e1c;
-        --teal: #3fb6a6;
-        --teal-dim: #173330;
-        --red: #e1594f;
-        --red-dim: #3a1e1c;
-        --blue: #5b9bd5;
-        --blue-dim: #1b2a38;
-        --orange2: #ff8a3d;
-        --radius: 6px;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-      }
-      body {
-        background: var(--bg);
-        color: var(--text);
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 14px;
-        -webkit-font-smoothing: antialiased;
-      }
-      h1,
-      h2,
-      h3,
-      .display {
-        font-family: Arial, Helvetica, sans-serif;
-      }
-      code,
-      .mono,
-      .num {
-        font-family: Arial, Helvetica, sans-serif;
-      }
-      button {
-        font-family: Arial, Helvetica, sans-serif;
-        cursor: pointer;
-      }
-      input,
-      select,
-      textarea {
-        font-family: Arial, Helvetica, sans-serif;
-      }
-      ::selection {
-        background: var(--amber-dim);
-      }
-      a {
-        color: var(--amber);
-      }
-
-      #loginScreen {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: radial-gradient(
-          circle at 30% 20%,
-          color-mix(in srgb, var(--panel) 85%, white 5%) 0%,
-          var(--bg) 60%
-        );
-        padding: 24px;
-      }
-      .login-card {
-        width: 100%;
-        max-width: 380px;
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 36px 32px;
-      }
-      .login-brand {
-        margin-bottom: 28px;
-      }
-      .login-brand .kicker {
-        color: var(--amber);
-        font-size: 12px;
-        letter-spacing: 0.04em;
-        margin-bottom: 6px;
-      }
-      .login-brand h1 {
-        font-size: 26px;
-        font-weight: 700;
-        margin: 0;
-        line-height: 1.15;
-      }
-      .login-brand .sub {
-        color: var(--muted);
-        font-size: 13px;
-        margin-top: 6px;
-      }
-      .field {
-        margin-bottom: 14px;
-      }
-      .field label {
-        display: block;
-        font-size: 12px;
-        color: var(--muted);
-        margin-bottom: 6px;
-      }
-      .field input,
-      .field select {
-        width: 100%;
-        padding: 10px 12px;
-        background: var(--panel-2);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        color: var(--text);
-        font-size: 14px;
-      }
-      .field input:focus,
-      .field select:focus,
-      .field textarea:focus {
-        outline: none;
-        border-color: var(--amber);
-      }
-      .btn {
-        border: none;
-        border-radius: var(--radius);
-        padding: 10px 16px;
-        font-size: 13px;
-        font-weight: 700;
-        transition: filter 0.12s ease;
-      }
-      .btn:hover {
-        filter: brightness(1.12);
-      }
-      .btn-primary {
-        background: var(--amber);
-        color: #1b1503;
-        width: 100%;
-        padding: 11px;
-      }
-      .btn-ghost {
-        background: transparent;
-        border: 1px solid var(--line);
-        color: var(--text);
-      }
-      .btn-teal {
-        background: var(--teal);
-        color: #06231e;
-      }
-      .btn-red {
-        background: var(--red);
-        color: #2b0908;
-      }
-      .btn-blue {
-        background: var(--blue);
-        color: #0b1d2b;
-      }
-      .btn-sm {
-        padding: 5px 10px;
-        font-size: 12px;
-      }
-      .login-error {
-        background: var(--red-dim);
-        color: #ffc9c4;
-        border: 1px solid #5a2c28;
-        border-radius: var(--radius);
-        padding: 8px 10px;
-        font-size: 12px;
-        margin-bottom: 14px;
-      }
-      .demo-accounts {
-        margin-top: 22px;
-        padding-top: 18px;
-        border-top: 1px solid var(--line);
-      }
-      .demo-accounts .kicker {
-        color: var(--muted);
-        font-size: 11px;
-        margin-bottom: 8px;
-      }
-      .demo-row {
-        display: flex;
-        justify-content: space-between;
-        font-size: 12px;
-        padding: 4px 0;
-        color: var(--muted);
-      }
-      .demo-row code {
-        color: var(--text);
-      }
-
-      #app {
-        display: none;
-        min-height: 100vh;
-      }
-      .shell {
-        display: flex;
-        min-height: 100vh;
-      }
-      .sidebar {
-        width: 230px;
-        background: var(--panel);
-        border-right: 1px solid var(--line);
-        display: flex;
-        flex-direction: column;
-        padding: 20px 0;
-        flex-shrink: 0;
-        overflow-y: auto;
-      }
-      .sidebar .brand {
-        padding: 0 20px 20px;
-        border-bottom: 1px solid var(--line);
-        margin-bottom: 8px;
-      }
-      .sidebar .brand .kicker {
-        color: var(--amber);
-        font-size: 11px;
-        letter-spacing: 0.04em;
-      }
-      .sidebar .brand h2 {
-        font-size: 17px;
-        margin: 2px 0 0;
-        font-weight: 700;
-      }
-      .nav-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 9px 20px;
-        color: var(--muted);
-        font-size: 13px;
-        font-weight: 600;
-        border-left: 3px solid transparent;
-        cursor: pointer;
-        justify-content: space-between;
-      }
-      .nav-item .nl {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .nav-item:hover {
-        color: var(--text);
-        background: var(--panel-2);
-      }
-      .nav-item.active {
-        color: var(--amber);
-        border-left-color: var(--amber);
-        background: var(--panel-2);
-      }
-      .nav-sep {
-        padding: 14px 20px 6px;
-        font-size: 10px;
-        letter-spacing: 0.06em;
-        color: #5c5e68;
-      }
-      .nav-badge {
-        background: var(--red);
-        color: #fff;
-        border-radius: 10px;
-        font-size: 10px;
-        font-weight: 700;
-        padding: 1px 6px;
-      }
-
-      .main {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
-      }
-      .topbar {
-        height: 60px;
-        border-bottom: 1px solid var(--line);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 24px;
-        background: var(--panel);
-        flex-shrink: 0;
-        gap: 16px;
-      }
-      .topbar-left {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-      }
-      .outlet-select select {
-        background: var(--panel-2);
-        border: 1px solid var(--line);
-        color: var(--text);
-        padding: 7px 10px;
-        border-radius: var(--radius);
-        font-size: 13px;
-      }
-      .topbar-right {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      .user-badge {
-        font-size: 12px;
-        color: var(--muted);
-        text-align: right;
-        cursor: pointer;
-        padding: 4px 8px;
-        border-radius: 6px;
-      }
-      .user-badge:hover {
-        background: var(--panel-2);
-      }
-      .user-badge b {
-        color: var(--text);
-        display: block;
-        font-size: 13px;
-      }
-      .content {
-        flex: 1;
-        overflow: auto;
-        padding: 26px 28px;
-      }
-
-      .page-title {
-        font-size: 22px;
-        font-weight: 700;
-        margin: 0 0 4px;
-      }
-      .page-sub {
-        color: var(--muted);
-        font-size: 13px;
-        margin: 0 0 20px;
-      }
-
-      .cards-row {
-        display: flex;
-        gap: 14px;
-        margin-bottom: 22px;
-        flex-wrap: wrap;
-      }
-      .stat-card {
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 16px 18px;
-        min-width: 150px;
-        flex: 1;
-      }
-      .stat-card .label {
-        font-size: 11px;
-        color: var(--muted);
-        letter-spacing: 0.03em;
-        margin-bottom: 6px;
-      }
-      .stat-card .value {
-        font-size: 24px;
-        font-weight: 700;
-      }
-      .stat-card .value.amber {
-        color: var(--amber);
-      }
-      .stat-card .value.red {
-        color: var(--red);
-      }
-      .stat-card .value.teal {
-        color: var(--teal);
-      }
-      .stat-card .value.orange2 {
-        color: var(--orange2);
-      }
-      .stat-card .value.blue {
-        color: var(--blue);
-      }
-
-      .panel {
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 20px;
-      }
-      .panel-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 16px;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-      .panel-head h3 {
-        margin: 0;
-        font-size: 15px;
-        font-weight: 700;
-      }
-      .toolbar {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-      .search-input {
-        background: var(--panel-2);
-        border: 1px solid var(--line);
-        color: var(--text);
-        padding: 7px 10px;
-        border-radius: var(--radius);
-        font-size: 13px;
-        min-width: 170px;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-      }
-      th {
-        text-align: left;
-        color: var(--muted);
-        font-weight: 700;
-        font-size: 11px;
-        letter-spacing: 0.02em;
-        padding: 8px 10px;
-        border-bottom: 1px solid var(--line);
-        white-space: nowrap;
-      }
-      td {
-        padding: 8px 10px;
-        border-bottom: 1px solid #26282e;
-        vertical-align: middle;
-      }
-      tr:hover td {
-        background: var(--panel-2);
-      }
-      .right {
-        text-align: right;
-      }
-      .center {
-        text-align: center;
-      }
-      .tag {
-        display: inline-block;
-        padding: 2px 8px;
-        border-radius: 20px;
-        font-size: 11px;
-        font-weight: 700;
-        white-space: nowrap;
-      }
-      .tag-teal {
-        background: var(--teal-dim);
-        color: var(--teal);
-      }
-      .tag-red {
-        background: var(--red-dim);
-        color: #ff8c83;
-      }
-      .tag-amber {
-        background: var(--amber-dim);
-        color: var(--amber);
-      }
-      .tag-orange2 {
-        background: #3a2416;
-        color: var(--orange2);
-      }
-      .tag-blue {
-        background: var(--blue-dim);
-        color: var(--blue);
-      }
-      .tag-muted {
-        background: #2a2c33;
-        color: var(--muted);
-      }
-      .mini-input {
-        width: 64px;
-        background: var(--panel-2);
-        border: 1px solid var(--line);
-        color: var(--text);
-        padding: 4px 6px;
-        border-radius: 4px;
-        font-size: 12px;
-        text-align: right;
-      }
-      .mini-input:focus {
-        outline: none;
-        border-color: var(--amber);
-      }
-      .icon-btn {
-        background: var(--panel-2);
-        border: 1px solid var(--line);
-        color: var(--text);
-        border-radius: 4px;
-        width: 24px;
-        height: 24px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 13px;
-        line-height: 1;
-        margin-left: 4px;
-      }
-      .icon-btn:hover {
-        border-color: var(--amber);
-        color: var(--amber);
-      }
-      .item-link {
-        background: none;
-        border: none;
-        color: var(--text);
-        font-weight: 700;
-        text-decoration: underline;
-        text-underline-offset: 2px;
-        cursor: pointer;
-        padding: 0;
-        font-size: 13px;
-        text-align: left;
-        font-family: inherit;
-      }
-      .item-link:hover {
-        color: var(--amber);
-      }
-      .empty-state {
-        text-align: center;
-        padding: 50px 20px;
-        color: var(--muted);
-      }
-      .empty-state .display {
-        font-size: 18px;
-        color: var(--text);
-        margin-bottom: 6px;
-      }
-
-      textarea.paste-area {
-        width: 100%;
-        min-height: 130px;
-        background: var(--panel-2);
-        border: 1px solid var(--line);
-        color: var(--text);
-        border-radius: var(--radius);
-        padding: 12px;
-        font-family: Arial, monospace;
-        font-size: 12.5px;
-        resize: vertical;
-      }
-      .hint {
-        font-size: 12px;
-        color: var(--muted);
-        margin-top: 8px;
-        line-height: 1.5;
-      }
-      .hint code {
-        background: var(--panel-2);
-        padding: 1px 5px;
-        border-radius: 3px;
-      }
-      .file-drop {
-        border: 1.5px dashed var(--line);
-        border-radius: 8px;
-        padding: 20px;
-        text-align: center;
-        color: var(--muted);
-        font-size: 13px;
-      }
-      .file-drop input[type="file"] {
-        margin-top: 10px;
-        color: var(--muted);
-        font-size: 12px;
-      }
-
-      .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(10, 10, 12, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 50;
-        padding: 20px;
-        overflow: auto;
-      }
-      .modal {
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 24px;
-        width: 100%;
-        max-width: 460px;
-        max-height: 88vh;
-        overflow: auto;
-      }
-      .modal.wide {
-        max-width: 760px;
-      }
-      .modal h3 {
-        margin: 0 0 16px;
-        font-size: 16px;
-      }
-      .modal-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 8px;
-        margin-top: 18px;
-        flex-wrap: wrap;
-      }
-
-      .toast {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: var(--panel-2);
-        border: 1px solid var(--line);
-        border-left: 3px solid var(--teal);
-        color: var(--text);
-        padding: 12px 16px;
-        border-radius: 6px;
-        font-size: 13px;
-        z-index: 100;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-        max-width: 320px;
-      }
-      .toast.error {
-        border-left-color: var(--red);
-      }
-      ::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #33353d;
-        border-radius: 6px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-
-      .line-form {
-        display: flex;
-        gap: 8px;
-        align-items: flex-end;
-        flex-wrap: wrap;
-        margin-bottom: 14px;
-      }
-      .station-tag-Bar {
-        background: var(--blue-dim);
-        color: var(--blue);
-      }
-      .station-tag-Kitchen {
-        background: var(--amber-dim);
-        color: var(--amber);
-      }
-      .pill-tabs {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-        margin-bottom: 18px;
-      }
-      .pill-tab {
-        padding: 7px 14px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 700;
-        background: var(--panel-2);
-        border: 1px solid var(--line);
-        color: var(--muted);
-        cursor: pointer;
-      }
-      .pill-tab.active {
-        background: var(--amber-dim);
-        color: var(--amber);
-        border-color: var(--amber);
-      }
-      .theme-swatch {
-        width: 100%;
-        height: 44px;
-        border-radius: 6px;
-        border: 2px solid var(--line);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 11px;
-        font-weight: 700;
-        color: #fff;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-      }
-      .theme-swatch.active {
-        border-color: var(--amber);
-      }
-      .settings-card {
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 16px;
-        display: flex;
-        gap: 14px;
-        align-items: flex-start;
-        cursor: pointer;
-        transition: border-color 0.12s ease;
-      }
-      .settings-card:hover {
-        border-color: var(--amber);
-      }
-      .settings-card-icon {
-        width: 38px;
-        height: 38px;
-        border-radius: 8px;
-        background: var(--panel-2);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        flex-shrink: 0;
-      }
-      .settings-card-chev {
-        color: var(--muted);
-        font-size: 18px;
-        line-height: 1;
-        flex-shrink: 0;
-      }
-      .settings-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 14px;
-      }
-      .settings-section-head {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        margin: 22px 0 10px;
-      }
-      .settings-section-head .dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        display: inline-block;
-      }
-      .settings-section-head .lbl {
-        font-size: 11px;
-        letter-spacing: 0.06em;
-        color: var(--muted);
-        font-weight: 700;
-      }
-      .acct-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 9px 0;
-        border-top: 1px solid var(--line);
-        cursor: pointer;
-        font-size: 13px;
-      }
-      .acct-row:hover {
-        color: var(--amber);
-      }
-
-      #printArea {
-        display: none;
-      }
-      @media print {
-        body > *:not(#printArea) {
-          display: none !important;
-        }
-        #printArea {
-          display: block !important;
-          padding: 20px;
-          color: #000;
-          background: #fff;
-          font-family: Arial, sans-serif;
-        }
-        #printArea table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-        #printArea th,
-        #printArea td {
-          border: 1px solid #999;
-          padding: 6px 8px;
-          font-size: 11px;
-          color: #000;
-        }
-      }
-      @media (max-width: 820px) {
-        .sidebar {
-          width: 64px;
-        }
-        .sidebar .brand h2,
-        .sidebar .brand .kicker,
-        .nav-item span.label,
-        .nav-sep,
-        .nav-badge {
-          display: none;
-        }
-        .nav-item {
-          justify-content: center;
-          padding: 12px 0;
-        }
-        .content {
-          padding: 16px;
-        }
-      }
-      @media (max-width: 640px) {
-        #loginScreen {
-          align-items: flex-start;
-          padding: 16px;
-        }
-        .login-card {
-          margin-top: 8vh;
-          padding: 28px 20px;
-        }
-        .shell {
-          display: block;
-        }
-        .sidebar {
-          width: 100%;
-          height: auto;
-          max-height: none;
-          padding: 12px 0 0;
-          border-right: none;
-          border-bottom: 1px solid var(--line);
-          overflow: hidden;
-        }
-        .sidebar .brand {
-          padding: 0 16px 12px;
-          margin-bottom: 0;
-        }
-        .sidebar .brand .kicker,
-        .sidebar .brand h2,
-        .nav-item span.label,
-        .nav-badge {
-          display: block;
-        }
-        .nav-sep {
-          display: none;
-        }
-        .sidebar .brand .kicker {
-          font-size: 10px;
-        }
-        .sidebar .brand h2 {
-          font-size: 16px;
-        }
-        #navItems {
-          display: flex;
-          gap: 4px;
-          padding: 8px 12px 10px;
-          overflow-x: auto;
-          scrollbar-width: thin;
-        }
-        .nav-item {
-          flex: 0 0 auto;
-          justify-content: flex-start;
-          gap: 8px;
-          padding: 9px 11px;
-          border-left: none;
-          border-bottom: 2px solid transparent;
-          border-radius: 4px;
-          white-space: nowrap;
-        }
-        .nav-item.active {
-          border-left-color: transparent;
-          border-bottom-color: var(--amber);
-        }
-        .nav-item .nl {
-          gap: 7px;
-        }
-        .main {
-          min-height: calc(100vh - 108px);
-        }
-        .topbar {
-          height: auto;
-          min-height: 60px;
-          align-items: stretch;
-          flex-direction: column;
-          padding: 12px;
-          gap: 10px;
-        }
-        .topbar-left,
-        .topbar-right {
-          width: 100%;
-        }
-        .topbar-left .outlet-select,
-        .topbar-left .outlet-select select,
-        .topbar-left .page-title {
-          width: 100%;
-        }
-        .topbar-left .outlet-select select {
-          padding: 9px 10px;
-        }
-        .topbar-right {
-          justify-content: space-between;
-        }
-        .topbar-right .btn {
-          flex: 0 0 auto;
-        }
-        .content {
-          padding: 16px 12px 24px;
-          overflow-x: hidden;
-        }
-        .page-title {
-          font-size: 20px;
-        }
-        .page-sub {
-          line-height: 1.45;
-        }
-        .cards-row {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 10px;
-          margin-bottom: 16px;
-        }
-        .stat-card {
-          min-width: 0;
-          padding: 13px 12px;
-        }
-        .stat-card .value {
-          font-size: 20px;
-          overflow-wrap: anywhere;
-        }
-        .panel {
-          padding: 14px;
-          margin-bottom: 14px;
-          overflow-x: auto;
-        }
-        .panel-head {
-          align-items: flex-start;
-        }
-        .panel-head h3 {
-          line-height: 1.35;
-        }
-        .toolbar {
-          width: 100%;
-        }
-        .toolbar > * {
-          min-width: 0 !important;
-          flex: 1 1 140px;
-        }
-        .toolbar .btn {
-          flex: 1 1 auto;
-        }
-        .search-input,
-        .toolbar select,
-        .toolbar input {
-          width: 100%;
-          min-width: 0;
-        }
-        table {
-          min-width: 680px;
-        }
-        .line-form {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr);
-          gap: 10px;
-        }
-        .line-form .field,
-        .line-form > .btn {
-          width: 100% !important;
-          min-width: 0 !important;
-        }
-        .file-drop {
-          overflow-wrap: anywhere;
-        }
-        .modal-overlay {
-          align-items: flex-start;
-          padding: 12px;
-        }
-        .modal,
-        .modal.wide {
-          max-width: none;
-          max-height: calc(100vh - 24px);
-          padding: 18px 14px;
-        }
-        .modal-actions {
-          justify-content: stretch;
-        }
-        .modal-actions .btn {
-          flex: 1 1 140px;
-        }
-        .toast {
-          right: 12px;
-          bottom: 12px;
-          left: 12px;
-          max-width: none;
-        }
-      }
-      @media (max-width: 360px) {
-        .cards-row {
-          grid-template-columns: 1fr;
-        }
-        .topbar-right {
-          align-items: center;
-        }
-        .user-badge {
-          min-width: 0;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-        .modal-actions .btn {
-          flex-basis: 100%;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <!-- Authentication view -->
     <div id="loginScreen">
       <div class="login-card">
         <div class="login-brand">
@@ -1049,6 +49,7 @@
       </div>
     </div>
 
+    <!-- Main application shell -->
     <div id="app">
       <div class="shell">
         <div class="sidebar">
@@ -1082,10 +83,29 @@
     <div id="printArea"></div>
 
     <script>
-      /* ============================================================
-   OSTRO NIGHTLIFE — STOCK CONTROL PROTOTYPE (v3)
-   ============================================================ */
+      /* ---- window.storage polyfill (wraps localStorage) ---- */
+      if (!window.storage) {
+        window.storage = {
+          get: function (key) {
+            const value = localStorage.getItem(key);
+            return Promise.resolve(
+              value !== null ? { value: value } : undefined,
+            );
+          },
+          set: function (key, value) {
+            localStorage.setItem(key, value);
+            return Promise.resolve();
+          },
+        };
+      }
 
+      /* ============================================================
+        OSTRO NIGHTLIFE — STOCK CONTROL PROTOTYPE (v3)
+        ============================================================ */
+
+      /* ============================================================
+        CONSTANTS / SEED DATA
+        ============================================================ */
       const OUTLETS = [
         "Ostro Restaurant",
         "Gastro 130 Restaurant",
@@ -5361,6 +4381,9 @@
         "Ostro Hotel": [],
       };
 
+      /* ============================================================
+        THEMES / MENU / DEFAULT ACCESS
+        ============================================================ */
       const THEMES = {
         dark: {
           "--bg": "#15161A",
@@ -5580,6 +4603,9 @@
         },
       ];
 
+      /* ============================================================
+        RUNTIME STATE
+        ============================================================ */
       let state = {
         user: null,
         tab: "ledger",
@@ -5610,13 +4636,21 @@
         poDraft: null,
         stockInDraft: null,
         transferDraft: null,
+        stockCounts: {},
+        countDrafts: {},
+        countOpen: false,
+        countSub: "count",
         viewDate: null,
         currentLedgerRows: [],
         loaded: false,
       };
       let scanState = { stream: null, interval: null };
       let cloudCache = null;
+      let cloudError = "";
 
+      /* ============================================================
+        DATA ACCESS / STORAGE
+        ============================================================ */
       /* ---------------- cloud database (Google Sheet) ---------------- */
       // Apps Script Web Apps respond via a redirect that browsers often CORS-block when read
       // through fetch(). JSONP (a <script> tag, not fetch) sidesteps CORS entirely for reads.
@@ -5626,6 +4660,7 @@
             resolve(null);
             return;
           }
+          cloudError = "";
           const cbName = "cloudCB_" + Math.random().toString(36).slice(2);
           const script = document.createElement("script");
           const cleanup = () => {
@@ -5639,11 +4674,17 @@
           window[cbName] = (data) => {
             clearTimeout(timeout);
             cleanup();
+            if (data && data.ok === false) {
+              cloudError = data.error || "The Apps Script returned an error.";
+              resolve(null);
+              return;
+            }
             resolve(data);
           };
           script.onerror = () => {
             clearTimeout(timeout);
             cleanup();
+            cloudError = "The web app URL could not be loaded.";
             resolve(null);
           };
           script.src = state.cloudUrl + "?action=getAll&callback=" + cbName;
@@ -5711,8 +4752,16 @@
           Date.now().toString(36).slice(-4)
         );
       }
+      // Local calendar date — toISOString() is UTC, which in UTC+7 still says "yesterday" until 07:00.
       function todayStr() {
-        return new Date().toISOString().slice(0, 10);
+        const d = new Date();
+        return (
+          d.getFullYear() +
+          "-" +
+          String(d.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(d.getDate()).padStart(2, "0")
+        );
       }
       function fmtNum(n) {
         const num = Number(n) || 0;
@@ -5729,6 +4778,17 @@
             maximumFractionDigits: 2,
           })
         );
+      }
+      function fmtSignedMoney(n) {
+        const v = round2(n);
+        return (v < 0 ? "-" : v > 0 ? "+" : "") + fmtMoney(Math.abs(v));
+      }
+      function varianceTagHtml(v) {
+        return v === 0
+          ? `<span class="tag tag-teal">0</span>`
+          : v > 0
+            ? `<span class="tag tag-amber">+${v}</span>`
+            : `<span class="tag tag-red">${v}</span>`;
       }
       function fmtDate(iso) {
         if (!iso) return "—";
@@ -5864,6 +4924,10 @@
             "os_snapshots:" + outlet,
             [],
           );
+          state.stockCounts[outlet] = await storeGet(
+            "os_stockcounts:" + outlet,
+            [],
+          );
           await upsertSnapshotToday(outlet);
         }
         state.categories = await storeGet("os_categories", null);
@@ -5937,7 +5001,8 @@
         state.snapshots[outlet] = snaps;
         await storeSet("os_snapshots:" + outlet, snaps);
       }
-      async function logMovement(outlet, entry) {
+      // Pass persist=false when logging a batch, then save os_movements once at the end.
+      async function logMovement(outlet, entry, persist = true) {
         const mv = state.movements[outlet];
         mv.unshift({
           id: uid("mv"),
@@ -5953,7 +5018,7 @@
           ref: entry.ref || "",
           user: state.user.username,
         });
-        await storeSet("os_movements:" + outlet, mv);
+        if (persist) await storeSet("os_movements:" + outlet, mv);
       }
       async function ensureSupplier(name) {
         if (!name) return;
@@ -6101,6 +5166,7 @@
         state.poDraft = null;
         state.stockInDraft = null;
         state.transferDraft = null;
+        state.countOpen = false;
         renderApp();
       }
       function setOutlet(name) {
@@ -6111,6 +5177,7 @@
         state.viewDate = null;
         state.pasteRows = null;
         state.stockInRows = null;
+        state.countOpen = false;
         renderApp();
       }
 
@@ -6128,6 +5195,40 @@
         let rows = [];
         OUTLETS.forEach((o) => (rows = rows.concat(liveRowsForOutlet(o))));
         return rows;
+      }
+      // Stock at the end of `date`, rebuilt from the movement log: today's closing minus every
+      // movement dated after `date`. Movements keep their own date, so backdated entries land on the right day.
+      function rowsAsOf(outlet, date) {
+        const later = {};
+        const openingAdj = {};
+        (state.movements[outlet] || []).forEach((m) => {
+          if (m.type === "physical-count") return; // records a count only, never moves stock
+          const q = Number(m.qty) || 0;
+          if (m.type === "opening-adjustment")
+            openingAdj[m.sku] = (openingAdj[m.sku] || 0) + q;
+          if (m.date > date) later[m.sku] = (later[m.sku] || 0) + q;
+        });
+        // Value at the price on record that day — prices change with each delivery.
+        const snap = (state.snapshots[outlet] || [])
+          .filter((s) => s.date <= date)
+          .sort((a, b) => b.date.localeCompare(a.date))[0];
+        const snapPrice = {};
+        if (snap) snap.items.forEach((i) => (snapPrice[i.sku] = i.price));
+        return (state.stock[outlet] || []).map((it) => {
+          let closing = closingOf(it) - (later[it.sku] || 0);
+          // Added after `date`: its original opening balance didn't exist yet.
+          if (it.createdAt && it.createdAt > date)
+            closing -= (it.opening || 0) - (openingAdj[it.sku] || 0);
+          closing = round2(closing);
+          const price =
+            snapPrice[it.sku] !== undefined ? snapPrice[it.sku] : it.price;
+          return Object.assign({}, it, {
+            _outlet: outlet,
+            closing,
+            price,
+            value: round2(closing * price),
+          });
+        });
       }
       function allCategoryNames() {
         const set = new Set(state.categories.map((c) => c.name));
@@ -6365,29 +5466,15 @@
         });
       }
       function renderLedger() {
-        const wrap = document.createElement("div");
         const isAll = state.outlet === "ALL";
+        if (state.countOpen && !isAll) return renderStockCount();
+        const wrap = document.createElement("div");
         const isLive = isAll || !state.viewDate || state.viewDate === "live";
-        let rows = [];
-        let noteLabel = "";
-        if (isAll) {
-          rows = liveRowsAll();
-        } else if (isLive) {
-          rows = liveRowsForOutlet(state.outlet);
-        } else {
-          const snaps = (state.snapshots[state.outlet] || [])
-            .filter((s) => s.date <= state.viewDate)
-            .sort((a, b) => b.date.localeCompare(a.date));
-          const candidate = snaps[0];
-          if (candidate) {
-            rows = candidate.items.map((i) =>
-              Object.assign({}, i, { _outlet: state.outlet }),
-            );
-            if (candidate.date !== state.viewDate)
-              noteLabel = ` — nearest record available: ${fmtDate(candidate.date)}`;
-          }
-        }
-        const filtered = isLive ? applyRowFilters(rows) : rows;
+        let rows;
+        if (isAll) rows = liveRowsAll();
+        else if (isLive) rows = liveRowsForOutlet(state.outlet);
+        else rows = rowsAsOf(state.outlet, state.viewDate);
+        const filtered = applyRowFilters(rows);
         state.currentLedgerRows = filtered;
         const totalValue = round2(filtered.reduce((s, r) => s + r.value, 0));
         const lowCount = filtered.filter((r) => r.closing <= 0).length;
@@ -6401,7 +5488,7 @@
   </div>
   <div class="panel">
     <div class="panel-head">
-      <h3>Inventory — ${isAll ? "All Outlets" : esc(state.outlet)}${isLive ? "" : noteLabel}</h3>
+      <h3>Inventory — ${isAll ? "All Outlets" : esc(state.outlet)}${isLive ? "" : " — as of end of " + fmtDate(state.viewDate)}</h3>
       <div class="toolbar">
         <label style="font-size:12px;color:var(--muted);">View value as of</label>
         <input type="date" class="search-input" style="min-width:auto;" value="${isLive && !isAll ? todayStr() : state.viewDate || todayStr()}" max="${todayStr()}" onchange="setLedgerDate(this.value)" ${isAll ? "disabled" : ""}>
@@ -6409,13 +5496,14 @@
         <button class="btn btn-ghost btn-sm" onclick="exportExcel()">Export Excel</button>
         <button class="btn btn-ghost btn-sm" onclick="exportPDF()">Export PDF</button>
         ${!isAll && isLive ? '<button class="btn btn-ghost btn-sm" onclick="openAddItemModal()">+ Add item</button>' : ""}
+        ${!isAll && isLive ? stockCountButtonHtml() : ""}
       </div>
     </div>`;
-        if (isLive) html += ledgerFilterBar();
+        html += ledgerFilterBar();
 
         if (filtered.length === 0) {
           html += `<div class="empty-state"><div class="display">No items to show</div>
-      <p>${isLive ? `Try adjusting your filters, or add a stock item.` : `No stock record exists on or before this date.`}</p></div>`;
+      <p>Try adjusting your filters${isLive ? ", or add a stock item" : ""}.</p></div>`;
         } else if (isLive) {
           html += `<table><thead><tr>${isAll ? "<th>Outlet</th>" : ""}<th>SKU</th><th>Category</th><th>Item</th><th>Unit</th><th class="right">Price</th>
       <th class="right">Opening</th><th class="right">In</th><th class="right">Out</th><th class="right">Closing</th>
@@ -6423,12 +5511,7 @@
           filtered.forEach((r) => {
             const it = r;
             const variance = round2((it.physical || 0) - r.closing);
-            const vTag =
-              variance === 0
-                ? `<span class="tag tag-teal">0</span>`
-                : variance > 0
-                  ? `<span class="tag tag-amber">+${variance}</span>`
-                  : `<span class="tag tag-red">${variance}</span>`;
+            const vTag = varianceTagHtml(variance);
             const es = it.expiryDate ? expiryStatus(it.expiryDate) : null;
             const expColor = es
               ? es.status === "expired"
@@ -6462,7 +5545,7 @@
           html += `<table><thead><tr><th>SKU</th><th>Category</th><th>Item</th><th>Unit</th><th class="right">Price</th><th class="right">Qty on hand</th><th class="right">Value</th><th>Expiry</th></tr></thead><tbody>`;
           filtered.forEach((r) => {
             html += `<tr><td class="mono">${esc(r.sku)}</td><td>${esc(r.cat)}</td><td>${esc(r.name)}</td><td class="mono">${esc(r.unit)}</td>
-        <td class="right num">${fmtMoney(r.price)}</td><td class="right num">${r.closing}</td><td class="right num"><b>${fmtMoney(r.value)}</b></td><td>${esc(r.expiryDate || "—")}</td></tr>`;
+        <td class="right num">${fmtMoney(r.price)}</td><td class="right num">${fmtNum(r.closing)}</td><td class="right num"><b>${fmtMoney(r.value)}</b></td><td>${esc(r.expiryDate || "—")}</td></tr>`;
           });
           html += `</tbody></table>`;
         }
@@ -6523,6 +5606,7 @@
               "manual-in": '<span class="tag tag-teal">Manual In</span>',
               "manual-out": '<span class="tag tag-amber">Manual Out</span>',
               "physical-count": '<span class="tag tag-muted">Count Adj.</span>',
+              "stock-count": '<span class="tag tag-orange2">Stock Count</span>',
               "stock-in": '<span class="tag tag-teal">Stock In</span>',
               "transfer-out": '<span class="tag tag-red">Transfer Out</span>',
               "transfer-in": '<span class="tag tag-teal">Transfer In</span>',
@@ -6731,6 +5815,7 @@
           qtyOut: 0,
           physical: opening,
           physicalDate: todayStr(),
+          createdAt: todayStr(),
           barcode: document.getElementById("niBarcode").value.trim(),
           expiryDate: document.getElementById("niExpiry").value || "",
           lastSupplier: "",
@@ -6809,6 +5894,696 @@
         closeModal();
         toast("Movement recorded.");
         renderApp();
+      }
+
+      /* ---------------- STOCK COUNT ---------------- */
+      let countPosting = false;
+      // An in-progress count is kept in this browser only, so a half-finished count survives a refresh.
+      function getCountDraft(outlet) {
+        if (state.countDrafts[outlet] === undefined) {
+          let d = null;
+          try {
+            d = JSON.parse(localStorage.getItem("os_countdraft:" + outlet));
+          } catch (e) {}
+          state.countDrafts[outlet] = d || null;
+        }
+        return state.countDrafts[outlet];
+      }
+      function saveCountDraft(outlet) {
+        try {
+          const d = state.countDrafts[outlet];
+          if (d)
+            localStorage.setItem("os_countdraft:" + outlet, JSON.stringify(d));
+          else localStorage.removeItem("os_countdraft:" + outlet);
+        } catch (e) {}
+      }
+      function newCountDraft() {
+        return {
+          date: todayStr(),
+          note: "",
+          importMode: "replace",
+          showBook: false,
+          filters: { search: "", cat: "", uncounted: false },
+          counts: {},
+          unmatched: [],
+        };
+      }
+      function countDraftSize(d) {
+        return d ? Object.keys(d.counts).length : 0;
+      }
+      function stockCountButtonHtml() {
+        const n = countDraftSize(getCountDraft(state.outlet));
+        return `<button class="btn btn-ghost btn-sm" onclick="openStockCount()">${n ? `Resume stock count (${n})` : "Stock count"}</button>`;
+      }
+      function openStockCount() {
+        const d = getCountDraft(state.outlet);
+        if (!d || (!countDraftSize(d) && !d.unmatched.length))
+          state.countDrafts[state.outlet] = newCountDraft();
+        state.countOpen = true;
+        state.countSub = "count";
+        renderApp();
+      }
+      function closeStockCount() {
+        state.countOpen = false;
+        renderApp();
+      }
+      function setCountSub(sub) {
+        state.countSub = sub;
+        renderApp();
+      }
+      function updateCountDraft(field, val) {
+        const d = getCountDraft(state.outlet);
+        if (!d) return;
+        d[field] = val;
+        saveCountDraft(state.outlet);
+      }
+      function discardStockCount() {
+        const n = countDraftSize(getCountDraft(state.outlet));
+        if (
+          n &&
+          !window.confirm(
+            `Discard this count? ${n} entered count(s) will be lost.`,
+          )
+        )
+          return;
+        state.countDrafts[state.outlet] = null;
+        saveCountDraft(state.outlet);
+        state.countOpen = false;
+        renderApp();
+      }
+      function computeCountLines(outlet, d) {
+        const lines = [];
+        const uncounted = [];
+        (state.stock[outlet] || []).forEach((it) => {
+          if (d.counts[it.id] === undefined) {
+            uncounted.push(it);
+            return;
+          }
+          const book = closingOf(it);
+          const counted = d.counts[it.id];
+          const variance = round2(counted - book);
+          lines.push({
+            id: it.id,
+            sku: it.sku,
+            name: it.name,
+            unit: it.unit,
+            price: it.price,
+            book,
+            counted,
+            variance,
+            value: round2(variance * it.price),
+          });
+        });
+        return { lines, uncounted };
+      }
+      function countTotals(lines) {
+        let withVariance = 0,
+          shortage = 0,
+          surplus = 0;
+        lines.forEach((l) => {
+          if (l.variance !== 0) withVariance++;
+          if (l.value < 0) shortage += l.value;
+          else surplus += l.value;
+        });
+        shortage = round2(shortage);
+        surplus = round2(surplus);
+        return {
+          withVariance,
+          shortage,
+          surplus,
+          net: round2(shortage + surplus),
+        };
+      }
+      function sortCountLines(lines) {
+        return lines
+          .slice()
+          .sort(
+            (a, b) =>
+              Math.abs(b.value) - Math.abs(a.value) ||
+              Math.abs(b.variance) - Math.abs(a.variance),
+          );
+      }
+      function moneyColor(v) {
+        return v < 0 ? "var(--red)" : v > 0 ? "var(--teal)" : "var(--muted)";
+      }
+
+      function renderStockCount() {
+        const wrap = document.createElement("div");
+        const outlet = state.outlet;
+        const d =
+          getCountDraft(outlet) || (state.countDrafts[outlet] = newCountDraft());
+        const n = countDraftSize(d);
+        const sub = state.countSub;
+        let html = `<h1 class="page-title">Stock Count</h1>
+  <p class="page-sub">Count what's on the shelf at ${esc(outlet)}, review the variances, then post them so closing stock matches the count.</p>
+  <div style="margin-bottom:14px;"><button class="btn btn-ghost btn-sm" onclick="closeStockCount()">&larr; Back to ledger</button></div>
+  <div class="pill-tabs">
+    <div class="pill-tab ${sub === "count" ? "active" : ""}" onclick="setCountSub('count')">1. Count</div>
+    <div class="pill-tab ${sub === "review" ? "active" : ""}" onclick="setCountSub('review')">2. Review &amp; post${n ? " (" + n + ")" : ""}</div>
+    <div class="pill-tab ${sub === "history" ? "active" : ""}" onclick="setCountSub('history')">History</div>
+  </div>`;
+        if (sub === "history") html += renderCountHistoryHtml(outlet);
+        else if (sub === "review") html += renderCountReviewHtml(outlet, d);
+        else html += renderCountEntryHtml(outlet, d);
+        wrap.innerHTML = html;
+        return wrap;
+      }
+      function countRowMatches(f, text, cat, isCounted) {
+        if (f.search && !text.includes(f.search.toLowerCase())) return false;
+        if (f.cat && cat !== f.cat) return false;
+        if (f.uncounted && isCounted) return false;
+        return true;
+      }
+      function renderCountEntryHtml(outlet, d) {
+        const items = state.stock[outlet] || [];
+        const f = d.filters;
+        const cats = Array.from(
+          new Set(items.map((it) => it.cat).filter(Boolean)),
+        ).sort();
+        let html = `<div class="panel"><div class="panel-head"><h3>Count details</h3></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div class="field" style="min-width:150px;margin-bottom:0;"><label>Count date</label><input type="date" value="${d.date}" max="${todayStr()}" onchange="updateCountDraft('date', this.value)"></div>
+      <div class="field" style="flex:1;min-width:200px;margin-bottom:0;"><label>Counted by / note</label><input value="${esc(d.note)}" placeholder="e.g. Month-end count by bar team" onchange="updateCountDraft('note', this.value.trim())"></div>
+    </div>
+    <div class="hint">Variances are measured against the live book quantity at the moment you post. Post the count before recording more sales, deliveries or transfers for ${esc(outlet)}.</div>
+  </div>
+  <div class="panel"><div class="panel-head"><h3>Import a count file</h3>
+    <button class="btn btn-ghost btn-sm" onclick="downloadCountTemplate()">Download count sheet (Excel)</button></div>
+    <div class="file-drop">Upload a completed count sheet (Excel / CSV)<br>
+      <input type="file" accept=".xlsx,.xls,.csv" onchange="handleCountFile(event)"></div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--muted);">
+      <span>If an item already has a count:</span>
+      <label><input type="radio" name="scMode" value="replace" ${d.importMode !== "add" ? "checked" : ""} onchange="updateCountDraft('importMode', this.value)"> Replace it</label>
+      <label><input type="radio" name="scMode" value="add" ${d.importMode === "add" ? "checked" : ""} onchange="updateCountDraft('importMode', this.value)"> Add to it (e.g. separate bar and storeroom files)</label>
+    </div>
+    <div class="hint">Needs an <code>SKU</code> (or <code>Barcode</code>) column and a <code>Counted Qty</code> column. Rows with a blank count are skipped, and repeated SKUs in one file are added together.</div>
+  </div>
+  <div class="panel"><div class="panel-head"><h3>Count sheet — <span id="scProgress">${countDraftSize(d)} of ${items.length} counted</span></h3>
+    <div class="toolbar">
+      <input id="scFind" class="search-input" placeholder="Scan or type barcode / SKU" onchange="countFind(this.value)">
+      <button class="btn btn-ghost btn-sm" onclick="openScanModal('scFind')">&#128247; Scan</button>
+    </div></div>
+    <div class="toolbar" style="margin-bottom:12px;">
+      <input id="scSearch" class="search-input" placeholder="Filter by SKU or name" value="${esc(f.search)}" oninput="filterCountRows()">
+      <select id="scCat" class="search-input" onchange="filterCountRows()"><option value="">All categories</option>${cats.map((c) => `<option value="${esc(c)}" ${c === f.cat ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>
+      <label style="font-size:12px;color:var(--muted);"><input type="checkbox" id="scUncounted" ${f.uncounted ? "checked" : ""} onchange="filterCountRows()"> Only uncounted</label>
+      <label style="font-size:12px;color:var(--muted);"><input type="checkbox" ${d.showBook ? "checked" : ""} onchange="updateCountDraft('showBook', this.checked); renderApp()"> Show book qty</label>
+    </div>`;
+        if (items.length === 0) {
+          html += `<div class="empty-state"><div class="display">No items to count</div><p>Add stock items to ${esc(outlet)} first.</p></div>`;
+        } else {
+          html += `<table id="scTable"><thead><tr><th>SKU</th><th>Category</th><th>Item</th><th>Unit</th>${d.showBook ? '<th class="right">Book</th>' : ""}<th class="right">Counted</th></tr></thead><tbody>`;
+          items.forEach((it) => {
+            const text = (
+              it.sku +
+              " " +
+              (it.name || "") +
+              " " +
+              (it.barcode || "")
+            ).toLowerCase();
+            const has = d.counts[it.id] !== undefined;
+            const show = countRowMatches(f, text, it.cat || "", has);
+            html += `<tr data-q="${esc(text)}" data-cat="${esc(it.cat || "")}" ${show ? "" : "hidden"}>
+        <td class="mono">${esc(it.sku)}</td><td>${esc(it.cat)}</td><td>${esc(it.name)}</td><td class="mono">${esc(it.unit)}</td>
+        ${d.showBook ? `<td class="right num">${fmtNum(closingOf(it))}</td>` : ""}
+        <td class="right"><input class="mini-input num count-input" style="width:80px;" type="number" step="any" min="0" inputmode="decimal" data-id="${it.id}" value="${has ? d.counts[it.id] : ""}" placeholder="—" onchange="setCountQty('${it.id}', this.value)" onkeydown="countKeyNav(event, this)"></td></tr>`;
+          });
+          html += `</tbody></table>
+    <div class="hint">Leave an item blank if you didn't count it — blank is not the same as 0. Press Enter to jump to the next item.</div>`;
+        }
+        html += `<div class="modal-actions" style="justify-content:flex-start;margin-top:16px;">
+    <button class="btn btn-primary" style="width:auto;padding:9px 20px;" onclick="setCountSub('review')">Review variances</button>
+    <button class="btn btn-ghost" onclick="discardStockCount()">Discard count</button></div></div>`;
+        return html;
+      }
+      function filterCountRows() {
+        const d = getCountDraft(state.outlet);
+        if (!d) return;
+        d.filters = {
+          search: document.getElementById("scSearch").value.trim(),
+          cat: document.getElementById("scCat").value,
+          uncounted: document.getElementById("scUncounted").checked,
+        };
+        saveCountDraft(state.outlet);
+        document.querySelectorAll("#scTable tbody tr").forEach((tr) => {
+          const has = tr.querySelector("input").value.trim() !== "";
+          tr.hidden = !countRowMatches(
+            d.filters,
+            tr.dataset.q,
+            tr.dataset.cat,
+            has,
+          );
+        });
+      }
+      function setCountQty(itemId, val) {
+        const d = getCountDraft(state.outlet);
+        if (!d) return;
+        const raw = String(val).trim();
+        if (raw === "") {
+          delete d.counts[itemId];
+        } else {
+          const n = parseFloat(raw);
+          if (isNaN(n) || n < 0) {
+            toast("Enter a count of 0 or more, or leave it blank.", true);
+            const el = document.querySelector(
+              `#scTable input[data-id="${itemId}"]`,
+            );
+            if (el)
+              el.value = d.counts[itemId] !== undefined ? d.counts[itemId] : "";
+            return;
+          }
+          d.counts[itemId] = round2(n);
+        }
+        saveCountDraft(state.outlet);
+        const prog = document.getElementById("scProgress");
+        if (prog)
+          prog.textContent = `${countDraftSize(d)} of ${(state.stock[state.outlet] || []).length} counted`;
+      }
+      function countKeyNav(e, el) {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        const inputs = Array.from(
+          document.querySelectorAll("#scTable input.count-input"),
+        ).filter((i) => !i.closest("tr").hidden);
+        const next = inputs[inputs.indexOf(el) + 1];
+        if (next) {
+          next.focus();
+          next.select();
+        } else el.blur();
+      }
+      function countFind(val) {
+        const code = String(val || "").trim();
+        const findEl = document.getElementById("scFind");
+        if (findEl) findEl.value = "";
+        if (!code) return;
+        const it = (state.stock[state.outlet] || []).find(
+          (x) =>
+            x.sku.toLowerCase() === code.toLowerCase() ||
+            (x.barcode && x.barcode === code),
+        );
+        if (!it) {
+          toast(`No item found for "${code}".`, true);
+          return;
+        }
+        const input = document.querySelector(
+          `#scTable input[data-id="${it.id}"]`,
+        );
+        if (!input) return;
+        if (input.closest("tr").hidden) {
+          document.getElementById("scSearch").value = "";
+          document.getElementById("scCat").value = "";
+          document.getElementById("scUncounted").checked = false;
+          filterCountRows();
+        }
+        input.scrollIntoView({ block: "center" });
+        input.focus();
+        input.select();
+      }
+      function downloadCountTemplate() {
+        if (!checkXlsxReady()) return;
+        const aoa = [["SKU", "Item Name", "Category", "Unit", "Counted Qty"]];
+        (state.stock[state.outlet] || []).forEach((it) =>
+          aoa.push([it.sku, it.name, it.cat, it.unit, ""]),
+        );
+        try {
+          const ws = XLSX.utils.aoa_to_sheet(aoa);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Stock Count");
+          XLSX.writeFile(
+            wb,
+            state.outlet.replace(/\s+/g, "_") +
+              "_count_sheet_" +
+              todayStr() +
+              ".xlsx",
+          );
+        } catch (e) {
+          toast("Could not generate the count sheet.", true);
+        }
+      }
+      function handleCountFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        e.target.value = "";
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+          let matrix;
+          try {
+            const wb = XLSX.read(ev.target.result, { type: "binary" });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            matrix = XLSX.utils
+              .sheet_to_json(ws, { header: 1, defval: "" })
+              .filter((r) => r.length > 0);
+          } catch (err) {
+            toast(
+              "Could not read file — check it's a valid Excel/CSV.",
+              true,
+            );
+            return;
+          }
+          applyCountImport(matrix);
+        };
+        reader.readAsBinaryString(file);
+      }
+      function applyCountImport(matrix) {
+        const d = getCountDraft(state.outlet);
+        if (!d || matrix.length === 0) {
+          toast("The file is empty.", true);
+          return;
+        }
+        const bySku = {},
+          byBarcode = {},
+          byName = {};
+        (state.stock[state.outlet] || []).forEach((it) => {
+          bySku[it.sku.toUpperCase()] = it;
+          if (it.barcode) byBarcode[String(it.barcode)] = it;
+          byName[String(it.name || "").toLowerCase()] = it;
+        });
+        const idx = detectHeader(matrix[0], {
+          sku: /^(?!.*bar).*(sku|code)/,
+          barcode: /barcode|ean|upc/,
+          name: /name|description|^item$/,
+          qty: /count|qty|quantity/,
+        });
+        let dataRows = matrix.slice(1);
+        if (idx.qty === undefined) {
+          // No recognisable header: SKU in the first column, count in the last.
+          dataRows = matrix;
+          idx.sku = 0;
+          idx.qty = null;
+        }
+        const found = {};
+        const unmatched = {};
+        let skipped = 0;
+        dataRows.forEach((r) => {
+          if (r.every((c) => String(c).trim() === "")) return;
+          const qtyCell = idx.qty === null ? r[r.length - 1] : r[idx.qty];
+          const rawQty = String(qtyCell === undefined ? "" : qtyCell)
+            .replace(/,/g, "")
+            .trim();
+          if (rawQty === "") return; // blank = not counted
+          const qty = parseFloat(rawQty);
+          const cell = (k) =>
+            idx[k] !== undefined ? String(r[idx[k]] || "").trim() : "";
+          const code = cell("sku"),
+            barcode = cell("barcode"),
+            name = cell("name");
+          if (isNaN(qty) || qty < 0 || (!code && !barcode && !name)) {
+            skipped++;
+            return;
+          }
+          const it =
+            (code && (bySku[code.toUpperCase()] || byBarcode[code])) ||
+            (barcode && byBarcode[barcode]) ||
+            (name && byName[name.toLowerCase()]);
+          if (it) {
+            found[it.id] = round2((found[it.id] || 0) + qty);
+          } else {
+            const key = (code || barcode || name).toUpperCase();
+            if (!unmatched[key])
+              unmatched[key] = { code: code || barcode, name, qty: 0 };
+            unmatched[key].qty = round2(unmatched[key].qty + qty);
+          }
+        });
+        const ids = Object.keys(found);
+        const newUnmatched = Object.values(unmatched);
+        if (ids.length === 0 && newUnmatched.length === 0) {
+          toast(
+            "No counts found — fill in the Counted Qty column and try again.",
+            true,
+          );
+          return;
+        }
+        ids.forEach((id) => {
+          d.counts[id] =
+            d.importMode === "add"
+              ? round2((d.counts[id] || 0) + found[id])
+              : found[id];
+        });
+        d.unmatched = d.unmatched.concat(newUnmatched);
+        saveCountDraft(state.outlet);
+        state.countSub = "review";
+        toast(
+          `Imported counts for ${ids.length} item(s)` +
+            (newUnmatched.length ? `, ${newUnmatched.length} unmatched` : "") +
+            (skipped ? `, ${skipped} row(s) skipped` : "") +
+            ".",
+        );
+        renderApp();
+      }
+      function mapCountUnmatched(idx, itemId) {
+        const d = getCountDraft(state.outlet);
+        const u = d && d.unmatched[idx];
+        if (!u || !itemId) return;
+        d.counts[itemId] = round2((d.counts[itemId] || 0) + u.qty);
+        d.unmatched.splice(idx, 1);
+        saveCountDraft(state.outlet);
+        renderApp();
+      }
+      function ignoreCountUnmatched(idx) {
+        const d = getCountDraft(state.outlet);
+        if (!d) return;
+        d.unmatched.splice(idx, 1);
+        saveCountDraft(state.outlet);
+        renderApp();
+      }
+      function renderCountReviewHtml(outlet, d) {
+        const { lines, uncounted } = computeCountLines(outlet, d);
+        const t = countTotals(lines);
+        let html = `<div class="cards-row">
+    <div class="stat-card"><div class="label">ITEMS COUNTED</div><div class="value">${lines.length} <span style="font-size:13px;color:var(--muted);">/ ${lines.length + uncounted.length}</span></div></div>
+    <div class="stat-card"><div class="label">WITH VARIANCE</div><div class="value ${t.withVariance ? "amber" : "teal"}">${t.withVariance}</div></div>
+    <div class="stat-card"><div class="label">SHORTAGE / SURPLUS</div><div class="value" style="font-size:17px;"><span style="color:var(--red)">${fmtSignedMoney(t.shortage)}</span> / <span style="color:var(--teal)">${fmtSignedMoney(t.surplus)}</span></div></div>
+    <div class="stat-card"><div class="label">NET VARIANCE VALUE</div><div class="value" style="color:${moneyColor(t.net)}">${fmtSignedMoney(t.net)}</div></div>
+  </div>`;
+        if (d.unmatched.length) {
+          const options = (state.stock[outlet] || [])
+            .map(
+              (it) =>
+                `<option value="${it.id}">${esc(it.sku)} — ${esc(it.name)}</option>`,
+            )
+            .join("");
+          html += `<div class="panel"><div class="panel-head"><h3>Unmatched rows from file</h3><span class="tag tag-red">${d.unmatched.length} unmatched</span></div>
+    <table><thead><tr><th>Code</th><th>Name</th><th class="right">Counted</th><th>Map to item</th><th></th></tr></thead><tbody>`;
+          d.unmatched.forEach((u, i) => {
+            html += `<tr><td class="mono">${esc(u.code || "—")}</td><td>${esc(u.name || "—")}</td><td class="right num">${fmtNum(u.qty)}</td>
+        <td><select class="search-input" onchange="mapCountUnmatched(${i}, this.value)"><option value="">— map to stock item —</option>${options}</select></td>
+        <td class="right"><button class="btn btn-ghost btn-sm" onclick="ignoreCountUnmatched(${i})">Ignore</button></td></tr>`;
+          });
+          html += `</tbody></table><div class="hint">A mapped quantity is added to that item's count. Rows still unmatched are ignored when you post.</div></div>`;
+        }
+        html += `<div class="panel"><div class="panel-head"><h3>Variances — count date ${fmtDate(d.date)}</h3></div>`;
+        if (lines.length === 0) {
+          html += `<div class="empty-state"><div class="display">Nothing counted yet</div><p>Enter counts on the Count tab or import a count file.</p></div>`;
+        } else {
+          html += `<table><thead><tr><th>SKU</th><th>Item</th><th>Unit</th><th class="right">Book</th><th class="right">Counted</th><th class="right">Variance</th><th class="right">Var. value</th></tr></thead><tbody>`;
+          sortCountLines(lines).forEach((l) => {
+            html += `<tr><td class="mono">${esc(l.sku)}</td><td>${esc(l.name)}</td><td class="mono">${esc(l.unit)}</td>
+        <td class="right num">${fmtNum(l.book)}</td>
+        <td class="right"><input class="mini-input num" style="width:80px;" type="number" step="any" min="0" inputmode="decimal" value="${l.counted}" onchange="setCountQty('${l.id}', this.value); renderApp()"></td>
+        <td class="right">${varianceTagHtml(l.variance)}</td>
+        <td class="right num" style="color:${moneyColor(l.value)}">${fmtSignedMoney(l.value)}</td></tr>`;
+          });
+          html += `</tbody></table>`;
+          if (uncounted.length)
+            html += `<details style="margin-top:14px;font-size:13px;"><summary style="cursor:pointer;color:var(--muted);">${uncounted.length} item(s) not counted — they stay unchanged</summary>
+    <div class="hint">${uncounted.map((it) => esc(it.sku) + " — " + esc(it.name)).join("<br>")}</div></details>`;
+        }
+        html += `<div class="modal-actions" style="justify-content:flex-start;margin-top:16px;">
+    <button class="btn btn-primary" style="width:auto;padding:9px 20px;" onclick="postStockCount()" ${lines.length ? "" : "disabled"}>Post count (${t.withVariance} adjustment${t.withVariance === 1 ? "" : "s"})</button>
+    <button class="btn btn-ghost" onclick="setCountSub('count')">Back to counting</button>
+    <button class="btn btn-ghost" onclick="discardStockCount()">Discard count</button></div>
+    <div class="hint">Posting sets each counted item's closing stock to the counted quantity: shortages are added to Out, surpluses to In, and each adjustment is logged as a Stock Count movement.</div></div>`;
+        return html;
+      }
+      function nextCountNumber(outlet, date) {
+        const prefix = "SC-" + date.replace(/-/g, "") + "-";
+        const n =
+          (state.stockCounts[outlet] || []).filter((c) =>
+            c.number.startsWith(prefix),
+          ).length + 1;
+        return prefix + n;
+      }
+      async function postStockCount() {
+        if (countPosting) return;
+        const outlet = state.outlet;
+        const d = getCountDraft(outlet);
+        if (!d) return;
+        if (!d.date) {
+          toast("Set the count date first.", true);
+          return;
+        }
+        const { lines } = computeCountLines(outlet, d);
+        if (lines.length === 0) {
+          toast("Nothing counted yet.", true);
+          return;
+        }
+        const t = countTotals(lines);
+        const um = d.unmatched.length;
+        if (
+          !window.confirm(
+            `Post stock count for ${outlet}?\n\n${lines.length} item(s) counted, ${t.withVariance} adjustment(s), net variance ${fmtSignedMoney(t.net)}.` +
+              (um ? `\n${um} unmatched row(s) will be ignored.` : "") +
+              `\n\nClosing stock will be set to the counted quantities.`,
+          )
+        )
+          return;
+        countPosting = true;
+        try {
+          const number = nextCountNumber(outlet, d.date);
+          const items = state.stock[outlet];
+          for (const l of lines) {
+            const it = items.find((x) => x.id === l.id);
+            if (l.variance > 0) it.qtyIn = round2((it.qtyIn || 0) + l.variance);
+            else if (l.variance < 0)
+              it.qtyOut = round2((it.qtyOut || 0) - l.variance);
+            it.physical = l.counted;
+            it.physicalDate = d.date;
+            if (l.variance !== 0)
+              await logMovement(
+                outlet,
+                {
+                  type: "stock-count",
+                  date: d.date,
+                  sku: it.sku,
+                  name: it.name,
+                  qty: l.variance,
+                  value: l.value,
+                  ref: number,
+                  note: `${number}: book ${l.book} → counted ${l.counted}${d.note ? " — " + d.note : ""}`,
+                },
+                false,
+              );
+          }
+          await saveStock(outlet);
+          await storeSet("os_movements:" + outlet, state.movements[outlet]);
+          state.stockCounts[outlet].unshift({
+            id: uid("sc"),
+            number,
+            date: d.date,
+            note: d.note,
+            user: state.user.username,
+            postedAt: new Date().toISOString(),
+            itemsCounted: lines.length,
+            itemsWithVariance: t.withVariance,
+            shortageValue: t.shortage,
+            surplusValue: t.surplus,
+            netValue: t.net,
+            lines: lines.map(({ id, ...rest }) => rest),
+          });
+          await storeSet("os_stockcounts:" + outlet, state.stockCounts[outlet]);
+          state.countDrafts[outlet] = null;
+          saveCountDraft(outlet);
+          state.countOpen = false;
+          toast(
+            `${number} posted — ${t.withVariance} adjustment(s). Closing stock now matches the count.`,
+          );
+          renderApp();
+        } finally {
+          countPosting = false;
+        }
+      }
+      function renderCountHistoryHtml(outlet) {
+        const counts = state.stockCounts[outlet] || [];
+        let html = `<div class="panel"><div class="panel-head"><h3>Posted counts — ${esc(outlet)}</h3></div>`;
+        if (counts.length === 0)
+          return (
+            html +
+            `<div class="empty-state"><div class="display">No counts posted yet</div><p>Posted stock counts and their variance reports appear here.</p></div></div>`
+          );
+        html += `<table><thead><tr><th>Count #</th><th>Date</th><th>By</th><th>Note</th><th class="right">Counted</th><th class="right">With variance</th><th class="right">Net variance</th><th></th></tr></thead><tbody>`;
+        counts.forEach((c) => {
+          html += `<tr><td><button class="item-link mono" onclick="viewStockCount('${c.id}')">${esc(c.number)}</button></td><td class="mono">${fmtDate(c.date)}</td><td class="mono">${esc(c.user)}</td>
+        <td style="font-size:12px;color:var(--muted);">${esc(c.note || "")}</td>
+        <td class="right num">${c.itemsCounted}</td><td class="right num">${c.itemsWithVariance}</td>
+        <td class="right num" style="color:${moneyColor(c.netValue)}">${fmtSignedMoney(c.netValue)}</td>
+        <td class="right" style="white-space:nowrap;"><button class="btn btn-ghost btn-sm" onclick="exportStockCountExcel('${c.id}')">Excel</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportStockCountPDF('${c.id}')">PDF</button></td></tr>`;
+        });
+        return html + `</tbody></table></div>`;
+      }
+      function findStockCount(id) {
+        return (state.stockCounts[state.outlet] || []).find((c) => c.id === id);
+      }
+      function viewStockCount(id) {
+        const c = findStockCount(id);
+        if (!c) return;
+        const rows = sortCountLines(c.lines)
+          .map(
+            (l) => `<tr><td class="mono">${esc(l.sku)}</td><td>${esc(l.name)}</td>
+        <td class="right num">${fmtNum(l.book)}</td><td class="right num">${fmtNum(l.counted)}</td>
+        <td class="right">${varianceTagHtml(l.variance)}</td><td class="right num" style="color:${moneyColor(l.value)}">${fmtSignedMoney(l.value)}</td></tr>`,
+          )
+          .join("");
+        showModal(
+          `<h3>${esc(c.number)} <span style="font-size:12px;color:var(--muted);">${fmtDate(c.date)} · ${esc(c.user)}</span></h3>
+    ${c.note ? `<p class="hint" style="margin-top:-8px;">${esc(c.note)}</p>` : ""}
+    <div class="cards-row" style="margin-bottom:14px;">
+      <div class="stat-card"><div class="label">COUNTED</div><div class="value">${c.itemsCounted}</div></div>
+      <div class="stat-card"><div class="label">WITH VARIANCE</div><div class="value">${c.itemsWithVariance}</div></div>
+      <div class="stat-card"><div class="label">NET VARIANCE</div><div class="value" style="color:${moneyColor(c.netValue)}">${fmtSignedMoney(c.netValue)}</div></div>
+    </div>
+    <div style="overflow-x:auto;"><table><thead><tr><th>SKU</th><th>Item</th><th class="right">Book</th><th class="right">Counted</th><th class="right">Variance</th><th class="right">Var. value</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="modal-actions"><button class="btn btn-ghost btn-sm" onclick="exportStockCountExcel('${c.id}')">Export Excel</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportStockCountPDF('${c.id}')">Export PDF</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button></div>`,
+          true,
+        );
+      }
+      function exportStockCountExcel(id) {
+        const c = findStockCount(id);
+        if (!c || !checkXlsxReady()) return;
+        try {
+          const aoa = [
+            [
+              "SKU",
+              "Item",
+              "Unit",
+              "Price",
+              "Book",
+              "Counted",
+              "Variance",
+              "Variance Value",
+            ],
+          ];
+          sortCountLines(c.lines).forEach((l) =>
+            aoa.push([
+              l.sku,
+              l.name,
+              l.unit,
+              l.price,
+              l.book,
+              l.counted,
+              l.variance,
+              l.value,
+            ]),
+          );
+          aoa.push([]);
+          aoa.push(["", "Shortage value", "", "", "", "", "", c.shortageValue]);
+          aoa.push(["", "Surplus value", "", "", "", "", "", c.surplusValue]);
+          aoa.push(["", "Net variance value", "", "", "", "", "", c.netValue]);
+          const ws = XLSX.utils.aoa_to_sheet(aoa);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Stock Count");
+          XLSX.writeFile(
+            wb,
+            state.outlet.replace(/\s+/g, "_") + "_" + c.number + ".xlsx",
+          );
+        } catch (e) {
+          toast("Export failed.", true);
+        }
+      }
+      function exportStockCountPDF(id) {
+        const c = findStockCount(id);
+        if (!c) return;
+        let html = `<h2>${esc(state.org.name || "Ostro Nightlife")} — ${esc(state.outlet)} Stock Count ${esc(c.number)}</h2>
+    <p>Count date: ${fmtDate(c.date)} · Posted by ${esc(c.user)}${c.note ? " · " + esc(c.note) : ""}</p>
+    <table><thead><tr><th>SKU</th><th>Item</th><th>Unit</th><th>Price</th><th>Book</th><th>Counted</th><th>Variance</th><th>Variance value</th></tr></thead><tbody>`;
+        sortCountLines(c.lines).forEach((l) => {
+          html += `<tr><td>${esc(l.sku)}</td><td>${esc(l.name)}</td><td>${esc(l.unit)}</td><td>${fmtMoney(l.price)}</td><td>${fmtNum(l.book)}</td><td>${fmtNum(l.counted)}</td><td>${l.variance > 0 ? "+" : ""}${fmtNum(l.variance)}</td><td>${fmtSignedMoney(l.value)}</td></tr>`;
+        });
+        html += `</tbody></table><p>Items counted: ${c.itemsCounted} · With variance: ${c.itemsWithVariance}</p>
+    <p><b>Shortage: ${fmtSignedMoney(c.shortageValue)} · Surplus: ${fmtSignedMoney(c.surplusValue)} · Net variance: ${fmtSignedMoney(c.netValue)}</b></p>`;
+        printHtmlDoc("Stock Count " + c.number, html);
       }
 
       /* ---------------- EXPIRY ALERTS ---------------- */
@@ -7070,7 +6845,10 @@
             state.pasteRows = rows;
             renderApp();
           } catch (err) {
-            toast("Could not read file — check it's a valid Excel/CSV.", true);
+            toast(
+              "Could not read file — check it's a valid Excel/CSV.",
+              true,
+            );
           }
         };
         reader.readAsBinaryString(file);
@@ -7091,7 +6869,10 @@
       async function confirmPaste() {
         const rows = state.pasteRows.filter((r) => r.sku);
         if (rows.length === 0) {
-          toast("Nothing to apply — map or ignore unmatched rows first.", true);
+          toast(
+            "Nothing to apply — map or ignore unmatched rows first.",
+            true,
+          );
           return;
         }
         const recDate =
@@ -7436,7 +7217,10 @@
             state.stockInRows = rows;
             renderApp();
           } catch (err) {
-            toast("Could not read file — check it's a valid Excel/CSV.", true);
+            toast(
+              "Could not read file — check it's a valid Excel/CSV.",
+              true,
+            );
           }
         };
         reader.readAsBinaryString(file);
@@ -7823,6 +7607,8 @@
                 "manual-out": '<span class="tag tag-amber">Manual Out</span>',
                 "physical-count":
                   '<span class="tag tag-muted">Count Adj.</span>',
+                "stock-count":
+                  '<span class="tag tag-orange2">Stock Count</span>',
                 "stock-in": '<span class="tag tag-teal">Stock In</span>',
                 "transfer-out": '<span class="tag tag-red">Transfer Out</span>',
                 "transfer-in": '<span class="tag tag-teal">Transfer In</span>',
@@ -8793,7 +8579,8 @@
           } else {
             cloudCache = null;
             toast(
-              "Could not reach that URL — double-check the deployment steps.",
+              cloudError ||
+                "Could not reach that URL — double-check the deployment steps.",
               true,
             );
           }
@@ -8837,6 +8624,12 @@
             cloudSet(
               "os_snapshots:" + o,
               JSON.stringify(state.snapshots[o] || []),
+            ),
+          );
+          jobs.push(
+            cloudSet(
+              "os_stockcounts:" + o,
+              JSON.stringify(state.stockCounts[o] || []),
             ),
           );
         });
@@ -8987,7 +8780,10 @@
             );
             renderApp();
           } catch (err) {
-            toast("Could not read file — check it's a valid Excel/CSV.", true);
+            toast(
+              "Could not read file — check it's a valid Excel/CSV.",
+              true,
+            );
           }
         };
         reader.readAsBinaryString(file);
@@ -9337,7 +9133,10 @@
             );
             renderApp();
           } catch (err) {
-            toast("Could not read file — check it's a valid Excel/CSV.", true);
+            toast(
+              "Could not read file — check it's a valid Excel/CSV.",
+              true,
+            );
           }
         };
         reader.readAsBinaryString(file);
@@ -9466,7 +9265,10 @@
             );
             renderApp();
           } catch (err) {
-            toast("Could not read file — check it's a valid Excel/CSV.", true);
+            toast(
+              "Could not read file — check it's a valid Excel/CSV.",
+              true,
+            );
           }
         };
         reader.readAsBinaryString(file);
