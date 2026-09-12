@@ -260,6 +260,17 @@
         border-left-color: var(--amber);
         background: var(--panel-2);
       }
+      /* Sub-nav item: indented only in the full-width sidebar — narrow layouts
+         collapse the nav to icons or a scrolling row, where an indent makes no sense. */
+      @media (min-width: 1025px) {
+        .nav-item.sub {
+          padding-left: 40px;
+          font-size: 12.5px;
+        }
+        .nav-item.sub .nl > span:first-child {
+          font-size: 11px;
+        }
+      }
       .nav-sep {
         padding: 14px 20px 6px;
         font-size: 10px;

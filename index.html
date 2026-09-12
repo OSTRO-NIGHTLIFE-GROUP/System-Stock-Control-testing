@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -68,9 +68,6 @@
                 id="userBadge"
                 onclick="toggleAccountPopover()"
               ></div>
-              <button class="btn btn-ghost btn-sm" onclick="doLogout()">
-                Log out
-              </button>
             </div>
           </div>
           <div class="content" id="content"></div>
@@ -4492,14 +4489,27 @@
       };
 
       const MENU_LIST = [
-        { id: "ledger", label: "Stock Ledger" },
-        { id: "expiry", label: "Expiry Alerts" },
-        { id: "paste", label: "Paste Sales" },
-        { id: "stockin", label: "Stock In" },
+        { id: "home", label: "Dashboard" },
+        { id: "items", label: "Items" },
+        { id: "categories", label: "Categories" },
+        { id: "costprice", label: "Cost & Price" },
+        { id: "stockcount", label: "Stock Count" },
+        { id: "adjustment", label: "Stock Adjustment" },
+        { id: "mapping", label: "Item Mapping" },
+        { id: "reorder", label: "Reorder Points" },
+        { id: "paste", label: "POS Sales Import" },
         { id: "transfer", label: "Stock Transfer" },
         { id: "log", label: "Movement Log" },
-        { id: "mapping", label: "Item Mapping" },
+        { id: "vendors", label: "Vendors" },
+        { id: "expenses", label: "Expenses" },
         { id: "purchasing", label: "Purchase Orders" },
+        { id: "goodsreceived", label: "Goods Received" },
+        { id: "ledger", label: "Report: Stock Ledger" },
+        { id: "summaryreport", label: "Report: Stock Summary" },
+        { id: "movementreport", label: "Report: Stock Movement" },
+        { id: "countreport", label: "Report: Stock Count" },
+        { id: "expiry", label: "Report: Expiry Alerts" },
+        { id: "vendorstatement", label: "Report: Vendor Statement" },
       ];
       const DEFAULT_ROLES = [
         {
@@ -4507,14 +4517,27 @@
           name: "Full Access",
           isSystem: true,
           permissions: {
-            ledger: true,
-            expiry: true,
+            home: true,
+            items: true,
+            categories: true,
+            costprice: true,
+            stockcount: true,
+            adjustment: true,
+            mapping: true,
+            reorder: true,
             paste: true,
-            stockin: true,
             transfer: true,
             log: true,
-            mapping: true,
+            vendors: true,
+            expenses: true,
             purchasing: true,
+            goodsreceived: true,
+            ledger: true,
+            summaryreport: true,
+            movementreport: true,
+            countreport: true,
+            expiry: true,
+            vendorstatement: true,
           },
         },
         {
@@ -4522,14 +4545,27 @@
           name: "Basic Operations",
           isSystem: false,
           permissions: {
-            ledger: true,
-            expiry: true,
+            home: true,
+            items: true,
+            categories: false,
+            costprice: false,
+            stockcount: true,
+            adjustment: true,
+            mapping: false,
+            reorder: false,
             paste: true,
-            stockin: true,
             transfer: false,
             log: false,
-            mapping: false,
+            vendors: false,
+            expenses: false,
             purchasing: false,
+            goodsreceived: true,
+            ledger: true,
+            summaryreport: false,
+            movementreport: false,
+            countreport: true,
+            expiry: true,
+            vendorstatement: false,
           },
         },
       ];
@@ -4638,8 +4674,9 @@
         transferDraft: null,
         stockCounts: {},
         countDrafts: {},
-        countOpen: false,
         countSub: "count",
+        adjustPrefill: null,
+        rpt: null,
         viewDate: null,
         currentLedgerRows: [],
         loaded: false,
@@ -5064,7 +5101,7 @@
           found.role === "admin" || found.outlet === "ALL"
             ? "ALL"
             : found.outlet;
-        state.tab = found.role === "admin" ? "overview" : "ledger";
+        state.tab = menuAllowed(found, "home") ? "home" : "ledger";
         applyTheme(found.theme || "dark");
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("app").style.display = "block";
@@ -5081,53 +5118,55 @@
 
       /* ---------------- nav ---------------- */
       function navConfig() {
-        const isAdmin = state.user.role === "admin";
         const u = state.user;
         const items = [];
-        if (isAdmin) {
-          items.push({ sep: "HEAD OFFICE" });
-          items.push({ id: "overview", label: "All Outlets", icon: "&#9679;" });
-        }
-        items.push({ sep: "INVENTORY" });
-        if (menuAllowed(u, "ledger"))
-          items.push({ id: "ledger", label: "Stock Ledger", icon: "&#9776;" });
-        if (menuAllowed(u, "expiry"))
-          items.push({
-            id: "expiry",
-            label: "Expiry Alerts",
-            icon: "&#9888;",
-            badge: expiryBadgeCount(),
+        const add = (id, label, icon, extra) => {
+          if (menuAllowed(u, id))
+            items.push(Object.assign({ id, label, icon }, extra || {}));
+        };
+        const group = (label, fn) => {
+          const before = items.length;
+          items.push({ sep: label });
+          fn();
+          if (items.length === before + 1) items.pop(); // nothing visible in this group
+        };
+        group("HOME", () => add("home", "Dashboard", "&#9673;"));
+        group("INVENTORY", () => {
+          add("items", "Items", "&#128230;");
+          add("categories", "Categories", "&#127991;");
+          add("costprice", "Cost & Price", "&#128176;");
+          add("stockcount", "Stock Count", "&#9745;", {
+            badge: countDraftSize(getCountDraft(state.outlet)),
           });
-        items.push({ sep: "STOCK MOVEMENT" });
-        if (menuAllowed(u, "paste"))
-          items.push({ id: "paste", label: "Paste Sales", icon: "&#10133;" });
-        if (menuAllowed(u, "stockin"))
-          items.push({ id: "stockin", label: "Stock In", icon: "&#8615;" });
-        if (menuAllowed(u, "transfer"))
-          items.push({
-            id: "transfer",
-            label: "Stock Transfer",
-            icon: "&#8646;",
-          });
-        if (menuAllowed(u, "log"))
-          items.push({ id: "log", label: "Movement Log", icon: "&#8635;" });
-        if (menuAllowed(u, "mapping"))
-          items.push({
-            id: "mapping",
-            label: "Item Mapping",
-            icon: "&#128279;",
-          });
-        if (menuAllowed(u, "purchasing")) {
-          items.push({ sep: "PURCHASING" });
-          items.push({
-            id: "purchasing",
-            label: "Purchase Orders",
-            icon: "&#128203;",
+          add("adjustment", "Stock Adjustment", "&#8681;");
+          add("mapping", "Item Mapping", "&#128279;");
+          add("reorder", "Reorder Points", "&#128207;");
+        });
+        group("STOCK MOVEMENT", () => {
+          add("paste", "POS Sales Import", "&#10133;");
+          add("transfer", "Stock Transfer", "&#8646;");
+          add("log", "Movement Log", "&#8635;");
+        });
+        group("PURCHASING", () => {
+          add("vendors", "Vendors", "&#128666;");
+          add("expenses", "Expenses", "&#128181;");
+          add("purchasing", "Purchase Orders", "&#128203;", {
             badge: poBadgeCount(),
           });
-        }
-        if (isAdmin) {
-          items.push({ sep: "ADMIN" });
+          add("goodsreceived", "Goods Received", "&#8615;");
+        });
+        group("REPORTS", () => {
+          add("ledger", "Stock Ledger", "&#9776;");
+          add("summaryreport", "Stock Summary", "&#128200;");
+          add("movementreport", "Stock Movement", "&#8644;");
+          add("countreport", "Stock Count", "&#9776;");
+          add("expiry", "Expiry Alerts", "&#9888;", {
+            badge: expiryBadgeCount(),
+          });
+          add("vendorstatement", "Vendor Statement", "&#129534;");
+        });
+        if (u.role === "admin") {
+          items.push({ sep: "SETTINGS" });
           items.push({ id: "settings", label: "Settings", icon: "&#9881;" });
         }
         return items;
@@ -5154,7 +5193,22 @@
           (p) => p.status === "pending",
         ).length;
       }
-      const NO_ALL_TABS = ["paste", "stockin", "transfer", "purchasing"];
+      const NO_ALL_TABS = [
+        "paste",
+        "goodsreceived",
+        "transfer",
+        "purchasing",
+        "stockcount",
+        "adjustment",
+        "items",
+        "costprice",
+        "reorder",
+        "expenses",
+        "countreport",
+        "summaryreport",
+        "movementreport",
+        "vendorstatement",
+      ];
       function setTab(id) {
         if (NO_ALL_TABS.includes(id) && state.outlet === "ALL")
           state.outlet =
@@ -5166,7 +5220,7 @@
         state.poDraft = null;
         state.stockInDraft = null;
         state.transferDraft = null;
-        state.countOpen = false;
+        if (id === "stockcount") ensureCountDraft();
         renderApp();
       }
       function setOutlet(name) {
@@ -5177,7 +5231,7 @@
         state.viewDate = null;
         state.pasteRows = null;
         state.stockInRows = null;
-        state.countOpen = false;
+        if (state.tab === "stockcount") ensureCountDraft();
         renderApp();
       }
 
@@ -5247,7 +5301,7 @@
         renderUserBadge();
         const content = document.getElementById("content");
         content.innerHTML = "";
-        if (!["overview", "settings", "expiry"].includes(state.tab)) {
+        if (!["home", "settings", "expiry"].includes(state.tab)) {
           const bannerHtml = renderAlertBanner();
           if (bannerHtml) {
             const b = document.createElement("div");
@@ -5257,20 +5311,56 @@
         }
         let body;
         switch (state.tab) {
-          case "overview":
-            body = renderOverview();
+          case "home":
+            body = renderHome();
+            break;
+          case "items":
+            body = renderItems();
+            break;
+          case "categories":
+            body = renderCategoriesPage();
+            break;
+          case "adjustment":
+            body = renderAdjustment();
+            break;
+          case "costprice":
+            body = renderCostPrice();
+            break;
+          case "reorder":
+            body = renderReorderPoints();
+            break;
+          case "expenses":
+            body = renderExpenses();
+            break;
+          case "goodsreceived":
+            body = renderGoodsReceived();
+            break;
+          case "summaryreport":
+            body = renderStockSummary();
+            break;
+          case "movementreport":
+            body = renderMovementReport();
+            break;
+          case "vendorstatement":
+            body = renderVendorStatement();
+            break;
+          case "vendors":
+            body = renderVendorsPage();
+            break;
+          case "countreport":
+            body = renderCountReport();
             break;
           case "ledger":
             body = renderLedger();
+            break;
+          case "stockcount":
+            body = renderStockCount();
             break;
           case "expiry":
             body = renderExpiry();
             break;
           case "paste":
             body = renderPaste();
-            break;
-          case "stockin":
-            body = renderStockIn();
             break;
           case "transfer":
             body = renderTransfer();
@@ -5304,7 +5394,11 @@
             return;
           }
           const div = document.createElement("div");
-          div.className = "nav-item" + (state.tab === it.id ? " active" : "");
+          div.className =
+            "nav-item" +
+            (it.sub ? " sub" : "") +
+            (state.tab === it.id ? " active" : "");
+          div.dataset.tab = it.id;
           div.innerHTML =
             `<span class="nl"><span>${it.icon}</span><span class="label">${it.label}</span></span>` +
             (it.badge ? `<span class="nav-badge">${it.badge}</span>` : "");
@@ -5315,7 +5409,7 @@
       const ALL_SUPPORTED_TABS = ["ledger", "expiry"];
       function renderTopbar() {
         const el = document.getElementById("topbarLeft");
-        const noOutletTabs = ["overview", "settings"];
+        const noOutletTabs = ["home", "settings", "categories", "vendors"];
         if (state.user.role === "admin" && !noOutletTabs.includes(state.tab)) {
           const options = ALL_SUPPORTED_TABS.includes(state.tab)
             ? [
@@ -5331,7 +5425,13 @@
           );
           el.innerHTML = `<div class="outlet-select"><select onchange="setOutlet(this.value)">${options.join("")}</select></div>`;
         } else if (noOutletTabs.includes(state.tab)) {
-          el.innerHTML = `<div class="page-title" style="font-size:16px;">${state.tab === "overview" ? "All Outlets Overview" : "Settings"}</div>`;
+          const titles = {
+            home: "Home",
+            settings: "Settings",
+            categories: "Categories",
+            vendors: "Vendors",
+          };
+          el.innerHTML = `<div class="page-title" style="font-size:16px;">${titles[state.tab] || "Settings"}</div>`;
         } else {
           el.innerHTML = `<div class="page-title" style="font-size:16px;">${esc(state.outlet)}</div>`;
         }
@@ -5365,26 +5465,31 @@
       }
 
       /* ---------------- OVERVIEW ---------------- */
-      function renderOverview() {
+      function renderHome() {
         const wrap = document.createElement("div");
+        // Outlet-bound users see only their own outlet; head office sees all.
+        const scope =
+          state.user.outlet && state.user.outlet !== "ALL"
+            ? [state.user.outlet]
+            : OUTLETS;
         let grand = 0;
-        OUTLETS.forEach((o) => {
+        scope.forEach((o) => {
           grand += (state.stock[o] || []).reduce(
             (s, it) => s + closingOf(it) * it.price,
             0,
           );
         });
-        let html = `<h1 class="page-title">All Outlets Overview</h1><p class="page-sub">Head Office view across all 5 outlets.</p>
+        let html = `<h1 class="page-title">Dashboard</h1><p class="page-sub">Live overview of your stock.</p>
   <div class="cards-row">
     <div class="stat-card"><div class="label">TOTAL STOCK VALUE</div><div class="value amber">${fmtMoney(grand)}</div></div>
-    <div class="stat-card"><div class="label">OUTLETS</div><div class="value">${OUTLETS.length}</div></div>
-    <div class="stat-card"><div class="label">TRACKED ITEMS</div><div class="value">${OUTLETS.reduce((s, o) => s + (state.stock[o] || []).length, 0)}</div></div>
-    <div class="stat-card"><div class="label">OPEN PURCHASE ORDERS</div><div class="value">${OUTLETS.reduce((s, o) => s + (state.pos[o] || []).filter((p) => ["pending", "approved", "sent"].includes(p.status)).length, 0)}</div></div>
+    <div class="stat-card"><div class="label">OUTLETS</div><div class="value">${scope.length}</div></div>
+    <div class="stat-card"><div class="label">TRACKED ITEMS</div><div class="value">${scope.reduce((s, o) => s + (state.stock[o] || []).length, 0)}</div></div>
+    <div class="stat-card"><div class="label">OPEN PURCHASE ORDERS</div><div class="value">${scope.reduce((s, o) => s + (state.pos[o] || []).filter((p) => ["pending", "approved", "sent"].includes(p.status)).length, 0)}</div></div>
   </div>
   <div class="panel"><div class="panel-head"><h3>Outlet Breakdown</h3></div>
   <table><thead><tr><th>Outlet</th><th class="right">Items</th><th class="right">Stock Value</th>
   <th class="right">Zero / Negative</th><th class="right">Expiring/Expired</th><th class="right">Open POs</th><th></th></tr></thead><tbody>`;
-        OUTLETS.forEach((o) => {
+        scope.forEach((o) => {
           const items = state.stock[o] || [];
           const value = items.reduce(
             (s, it) => s + closingOf(it) * it.price,
@@ -5416,6 +5521,46 @@
       }
 
       /* ---------------- LEDGER ---------------- */
+      // Counting has no write-path to item data, so "Counted" is always read back out
+      // of the posted records: the newest record wins, by count date then posting time.
+      function latestCountFor(outlet) {
+        const bySku = {};
+        (state.stockCounts[outlet] || [])
+          .slice()
+          .sort((a, b) =>
+            a.date === b.date
+              ? String(a.postedAt).localeCompare(String(b.postedAt))
+              : a.date.localeCompare(b.date),
+          )
+          .forEach((c) =>
+            c.lines.forEach(
+              (l) =>
+                (bySku[l.sku] = {
+                  counted: l.counted,
+                  date: c.date,
+                  number: c.number,
+                }),
+            ),
+          );
+        return bySku;
+      }
+      // For a past date, the count posted that day; live, each item's most recent count.
+      function ledgerCounts(outlet, date) {
+        const bySku = {};
+        if (!date) {
+          const meta = latestCountFor(outlet);
+          Object.keys(meta).forEach((sku) => (bySku[sku] = meta[sku].counted));
+          return { bySku, meta, hasCount: true, number: null };
+        }
+        const rec = (state.stockCounts[outlet] || []).find((c) => c.date === date);
+        if (rec) rec.lines.forEach((l) => (bySku[l.sku] = l.counted));
+        return {
+          bySku,
+          meta: null,
+          hasCount: !!rec,
+          number: rec ? rec.number : null,
+        };
+      }
       function ledgerFilterBar() {
         const cats = allCategoryNames();
         return `<div class="toolbar" style="margin-top:10px;">
@@ -5467,7 +5612,6 @@
       }
       function renderLedger() {
         const isAll = state.outlet === "ALL";
-        if (state.countOpen && !isAll) return renderStockCount();
         const wrap = document.createElement("div");
         const isLive = isAll || !state.viewDate || state.viewDate === "live";
         let rows;
@@ -5478,25 +5622,48 @@
         state.currentLedgerRows = filtered;
         const totalValue = round2(filtered.reduce((s, r) => s + r.value, 0));
         const lowCount = filtered.filter((r) => r.closing <= 0).length;
+        const countMap = isAll
+          ? null
+          : ledgerCounts(state.outlet, isLive ? null : state.viewDate);
+        // Always read the count out of the posted records, live view included.
+        const countedOf = (r) => (isAll ? undefined : countMap.bySku[r.sku]);
+        let countedItems = 0,
+          countedValue = 0,
+          varianceValue = 0;
+        if (!isAll)
+          filtered.forEach((r) => {
+            const c = countedOf(r);
+            if (c === undefined || c === null) return;
+            countedItems++;
+            countedValue += c * r.price;
+            varianceValue += (c - r.closing) * r.price;
+          });
+        countedValue = round2(countedValue);
+        varianceValue = round2(varianceValue);
 
         let html = `<h1 class="page-title">Stock Ledger</h1>
-  <p class="page-sub">Opening &rarr; In &rarr; Out &rarr; Closing, checked against your physical count.</p>
+  <p class="page-sub">Read-only report: Opening &rarr; In &rarr; Out &rarr; Closing. Counted and Variance come from the stock count for the day you are viewing — counts never change In, Out or Closing.</p>
   <div class="cards-row">
     <div class="stat-card"><div class="label">ITEMS</div><div class="value">${filtered.length}</div></div>
-    <div class="stat-card"><div class="label">STOCK VALUE${isLive ? " (LIVE)" : " (AS OF " + fmtDate(state.viewDate) + ")"}</div><div class="value amber">${fmtMoney(totalValue)}</div></div>
+    <div class="stat-card"><div class="label">BOOK VALUE${isLive ? " (LIVE)" : " (AS OF " + fmtDate(state.viewDate) + ")"}</div><div class="value amber">${fmtMoney(totalValue)}</div></div>
+    ${
+      isAll
+        ? ""
+        : `<div class="stat-card"><div class="label">COUNTED VALUE</div><div class="value">${countedItems ? fmtMoney(countedValue) : "—"}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">${countedItems} item(s) counted</div></div>
+    <div class="stat-card"><div class="label">VARIANCE VALUE</div><div class="value" style="color:${moneyColor(varianceValue)}">${countedItems ? fmtSignedMoney(varianceValue) : "—"}</div></div>`
+    }
     <div class="stat-card"><div class="label">ZERO / NEGATIVE ITEMS</div><div class="value ${lowCount > 0 ? "red" : "teal"}">${lowCount}</div></div>
   </div>
   <div class="panel">
     <div class="panel-head">
-      <h3>Inventory — ${isAll ? "All Outlets" : esc(state.outlet)}${isLive ? "" : " — as of end of " + fmtDate(state.viewDate)}</h3>
+      <h3>Inventory — ${isAll ? "All Outlets" : esc(state.outlet)}${isLive ? "" : " — as of end of " + fmtDate(state.viewDate)}${!isAll && !isLive ? (countMap.hasCount ? ` &middot; count ${esc(countMap.number)}` : " &middot; no count posted this day") : ""}</h3>
       <div class="toolbar">
         <label style="font-size:12px;color:var(--muted);">View value as of</label>
         <input type="date" class="search-input" style="min-width:auto;" value="${isLive && !isAll ? todayStr() : state.viewDate || todayStr()}" max="${todayStr()}" onchange="setLedgerDate(this.value)" ${isAll ? "disabled" : ""}>
         ${!isLive ? '<button class="btn btn-ghost btn-sm" onclick="setLedgerDate(\'live\')">Back to live</button>' : ""}
         <button class="btn btn-ghost btn-sm" onclick="exportExcel()">Export Excel</button>
         <button class="btn btn-ghost btn-sm" onclick="exportPDF()">Export PDF</button>
-        ${!isAll && isLive ? '<button class="btn btn-ghost btn-sm" onclick="openAddItemModal()">+ Add item</button>' : ""}
-        ${!isAll && isLive ? stockCountButtonHtml() : ""}
       </div>
     </div>`;
         html += ledgerFilterBar();
@@ -5507,11 +5674,16 @@
         } else if (isLive) {
           html += `<table><thead><tr>${isAll ? "<th>Outlet</th>" : ""}<th>SKU</th><th>Category</th><th>Item</th><th>Unit</th><th class="right">Price</th>
       <th class="right">Opening</th><th class="right">In</th><th class="right">Out</th><th class="right">Closing</th>
-      ${isAll ? "" : '<th class="right">Physical</th><th class="right">Variance</th>'}<th>Expiry</th>${isAll ? "" : "<th></th>"}</tr></thead><tbody>`;
+      ${isAll ? "" : '<th class="right">Counted</th><th class="right">Variance</th><th class="right">Var. value</th>'}<th>Expiry</th></tr></thead><tbody>`;
           filtered.forEach((r) => {
             const it = r;
-            const variance = round2((it.physical || 0) - r.closing);
-            const vTag = varianceTagHtml(variance);
+            const cnt = countedOf(r);
+            const hasCnt = cnt !== undefined && cnt !== null;
+            const variance = hasCnt ? round2(cnt - r.closing) : 0;
+            const varValue = hasCnt ? round2(variance * r.price) : 0;
+            const vTag = hasCnt
+              ? varianceTagHtml(variance)
+              : `<span class="tag tag-muted">—</span>`;
             const es = it.expiryDate ? expiryStatus(it.expiryDate) : null;
             const expColor = es
               ? es.status === "expired"
@@ -5529,23 +5701,31 @@
         <td class="right num" style="color:var(--teal)">${it.qtyIn > 0 ? "+" + fmtNum(it.qtyIn) : fmtNum(it.qtyIn)}</td>
         <td class="right num" style="color:var(--red)">${it.qtyOut > 0 ? "-" + fmtNum(it.qtyOut) : fmtNum(it.qtyOut)}</td>
         <td class="right num"><b>${fmtNum(r.closing)}</b></td>
-        ${isAll ? "" : `<td class="right"><input class="mini-input num" type="number" step="0.1" value="${it.physical}" onchange="updatePhysical('${it._outlet}','${it.id}', this.value)"></td><td class="right">${vTag}</td>`}
-        <td><input type="date" class="mini-input" style="width:118px;text-align:left;color:${expColor};" value="${it.expiryDate || ""}" onchange="updateExpiry('${it._outlet}','${it.id}', this.value)"></td>
         ${
           isAll
             ? ""
-            : `<td class="right" style="white-space:nowrap;">
-          <button class="icon-btn" title="Quick adjustment" onclick="openManualMoveModal('${it._outlet}','${it.id}')">&#8942;</button>
-          <button class="icon-btn" title="Edit item" onclick="openEditItemModal('${it._outlet}','${it.id}')">&#9998;</button></td>`
+            : `<td class="right num">${hasCnt ? fmtNum(cnt) : `<span style="font-size:11px;color:var(--muted);">Not yet counted</span>`}${hasCnt && isLive && countMap.meta && countMap.meta[it.sku] ? `<div style="font-size:11px;color:var(--muted);">as of ${fmtDate(countMap.meta[it.sku].date)}</div>` : ""}</td>
+        <td class="right">${vTag}</td>
+        <td class="right num" style="color:${moneyColor(varValue)}">${hasCnt ? fmtSignedMoney(varValue) : "—"}</td>`
         }
+        <td style="color:${expColor};">${it.expiryDate ? fmtDate(it.expiryDate) : "—"}</td>
       </tr>`;
           });
           html += `</tbody></table>`;
         } else {
-          html += `<table><thead><tr><th>SKU</th><th>Category</th><th>Item</th><th>Unit</th><th class="right">Price</th><th class="right">Qty on hand</th><th class="right">Value</th><th>Expiry</th></tr></thead><tbody>`;
+          html += `<table><thead><tr><th>SKU</th><th>Category</th><th>Item</th><th>Unit</th><th class="right">Price</th><th class="right">Qty on hand</th><th class="right">Value</th>
+      <th class="right">Counted</th><th class="right">Variance</th><th class="right">Var. value</th><th>Expiry</th></tr></thead><tbody>`;
           filtered.forEach((r) => {
+            const cnt = countedOf(r);
+            const hasCnt = cnt !== undefined && cnt !== null;
+            const variance = hasCnt ? round2(cnt - r.closing) : 0;
+            const varValue = hasCnt ? round2(variance * r.price) : 0;
             html += `<tr><td class="mono">${esc(r.sku)}</td><td>${esc(r.cat)}</td><td>${esc(r.name)}</td><td class="mono">${esc(r.unit)}</td>
-        <td class="right num">${fmtMoney(r.price)}</td><td class="right num">${fmtNum(r.closing)}</td><td class="right num"><b>${fmtMoney(r.value)}</b></td><td>${esc(r.expiryDate || "—")}</td></tr>`;
+        <td class="right num">${fmtMoney(r.price)}</td><td class="right num">${fmtNum(r.closing)}</td><td class="right num"><b>${fmtMoney(r.value)}</b></td>
+        <td class="right num">${hasCnt ? fmtNum(cnt) : "—"}</td>
+        <td class="right">${hasCnt ? varianceTagHtml(variance) : `<span class="tag tag-muted">—</span>`}</td>
+        <td class="right num" style="color:${moneyColor(varValue)}">${hasCnt ? fmtSignedMoney(varValue) : "—"}</td>
+        <td>${esc(r.expiryDate || "—")}</td></tr>`;
           });
           html += `</tbody></table>`;
         }
@@ -5558,27 +5738,6 @@
         renderApp();
       }
 
-      async function updatePhysical(outlet, itemId, val) {
-        const items = state.stock[outlet];
-        const it = items.find((x) => x.id === itemId);
-        if (!it) return;
-        const newVal = parseFloat(val);
-        if (isNaN(newVal)) return;
-        const oldVal = it.physical;
-        it.physical = round2(newVal);
-        it.physicalDate = todayStr();
-        await saveStock(outlet);
-        if (oldVal !== it.physical)
-          await logMovement(outlet, {
-            type: "physical-count",
-            sku: it.sku,
-            name: it.name,
-            qty: round2(it.physical - oldVal),
-            note: `Physical count updated: ${oldVal} → ${it.physical}`,
-          });
-        toast(`Physical count saved for ${it.name}.`);
-        renderApp();
-      }
       async function updateExpiry(outlet, itemId, val) {
         const items = state.stock[outlet];
         const it = items.find((x) => x.id === itemId);
@@ -5593,6 +5752,7 @@
       function openItemDetail(outlet, itemId) {
         const it = state.stock[outlet].find((x) => x.id === itemId);
         if (!it) return;
+        const lc = latestCountFor(outlet)[it.sku];
         const mv = (state.movements[outlet] || [])
           .filter((m) => m.sku === it.sku)
           .slice()
@@ -5624,40 +5784,13 @@
     <div class="cards-row" style="margin-bottom:14px;">
       <div class="stat-card"><div class="label">OPENING</div><div class="value">${it.opening}</div></div>
       <div class="stat-card"><div class="label">CLOSING (STOCK ON HAND)</div><div class="value amber">${closingOf(it)}</div></div>
-      <div class="stat-card"><div class="label">PHYSICAL COUNT</div><div class="value">${it.physical}</div></div>
+      <div class="stat-card"><div class="label">LAST COUNTED</div><div class="value">${lc ? fmtNum(lc.counted) : "—"}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">${lc ? "as of " + fmtDate(lc.date) + " · " + esc(lc.number) : "Not yet counted"}</div></div>
     </div>
-    <button class="btn btn-ghost btn-sm" style="margin-bottom:12px;" onclick="promptAdjustOpening('${outlet}','${itemId}')">Adjust opening (correction)</button>
     <table><thead><tr><th>Date</th><th>Type</th><th class="right">Qty</th><th>Note</th><th>By</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="modal-actions"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button></div>`,
           true,
         );
-      }
-      async function promptAdjustOpening(outlet, itemId) {
-        const it = state.stock[outlet].find((x) => x.id === itemId);
-        if (!it) return;
-        const val = window.prompt(
-          `Correct opening stock for ${it.name} (${it.unit}). Current: ${it.opening}`,
-          it.opening,
-        );
-        if (val === null) return;
-        const num = parseFloat(val);
-        if (isNaN(num)) {
-          toast("Enter a valid number.", true);
-          return;
-        }
-        const old = it.opening;
-        it.opening = round2(num);
-        await saveStock(outlet);
-        await logMovement(outlet, {
-          type: "opening-adjustment",
-          sku: it.sku,
-          name: it.name,
-          qty: round2(it.opening - old),
-          note: `Opening corrected: ${old} → ${it.opening}`,
-        });
-        toast("Opening stock corrected.");
-        openItemDetail(outlet, itemId);
-        renderApp();
       }
 
       /* -------- export -------- */
@@ -5676,7 +5809,7 @@
     table{width:100%;border-collapse:collapse;margin-top:10px;}
     th,td{border:1px solid #999;padding:6px 8px;font-size:12px;text-align:left;}
     h2{margin-bottom:4px;}
-  </style></head><body>${innerHtml}<script>window.onload=function(){setTimeout(function(){window.print();},250);};<\/script></body></html>`);
+  </style></head><body>${innerHtml}<script>window.onload=function(){setTimeout(function(){window.print();},250);};<\/script><\/body><\/html>`);
         win.document.close();
         win.focus();
       }
@@ -5766,6 +5899,13 @@
       }
 
       /* -------- add / edit item -------- */
+      // Blank reorder point means "never reordered", which is not the same as 0.
+      function reorderPointInput(id) {
+        const raw = (document.getElementById(id).value || "").trim();
+        if (raw === "") return undefined;
+        const n = parseFloat(raw);
+        return isNaN(n) || n < 0 ? undefined : round2(n);
+      }
       function categoryOptionsHtml(selected) {
         return allCategoryNames()
           .map(
@@ -5782,6 +5922,7 @@
     <div class="field"><label>Item name</label><input id="niName" placeholder="e.g. Aperol (BL)"></div>
     <div class="field"><label>Unit</label><input id="niUnit" placeholder="e.g. Bottle / kg / pcs"></div>
     <div class="field"><label>Purchase price ($)</label><input id="niPrice" type="number" step="0.01" placeholder="0.00"></div>
+    <div class="field"><label>Reorder point (optional)</label><input id="niReorder" type="number" step="any" min="0" placeholder="leave blank if never reordered"></div>
     <div class="field"><label>Opening stock (current physical count)</label><input id="niOpen" type="number" step="0.1" placeholder="0"></div>
     <div class="field"><label>Barcode (optional)</label><div style="display:flex;gap:8px;"><input id="niBarcode" placeholder="Scan or type" style="flex:1;"><button class="btn btn-ghost btn-sm" onclick="openScanModal('niBarcode')">Scan</button></div></div>
     <div class="field"><label>Expiry date (optional)</label><input id="niExpiry" type="date"></div>
@@ -5810,6 +5951,7 @@
           name,
           unit: document.getElementById("niUnit").value.trim() || "-",
           price: parseFloat(document.getElementById("niPrice").value) || 0,
+          reorderPoint: reorderPointInput("niReorder"),
           opening,
           qtyIn: 0,
           qtyOut: 0,
@@ -5835,6 +5977,7 @@
     <div class="field"><label>Item name</label><input id="eiName" value="${esc(it.name)}"></div>
     <div class="field"><label>Unit</label><input id="eiUnit" value="${esc(it.unit)}"></div>
     <div class="field"><label>Purchase price ($)</label><input id="eiPrice" type="number" step="0.01" value="${it.price}"></div>
+    <div class="field"><label>Reorder point (optional)</label><input id="eiReorder" type="number" step="any" min="0" value="${it.reorderPoint === undefined ? "" : it.reorderPoint}" placeholder="leave blank if never reordered"></div>
     <div class="field"><label>Barcode</label><div style="display:flex;gap:8px;"><input id="eiBarcode" value="${esc(it.barcode || "")}" style="flex:1;"><button class="btn btn-ghost btn-sm" onclick="openScanModal('eiBarcode')">Scan</button></div></div>
     <div class="field"><label>Last supplier</label><input id="eiSupplier" value="${esc(it.lastSupplier || "")}"></div>
     <div class="field"><label>Expiry date</label><input id="eiExpiry" type="date" value="${it.expiryDate || ""}"></div>
@@ -5851,6 +5994,9 @@
         it.name = document.getElementById("eiName").value.trim() || it.name;
         it.unit = document.getElementById("eiUnit").value.trim() || it.unit;
         it.price = parseFloat(document.getElementById("eiPrice").value) || 0;
+        const rp = reorderPointInput("eiReorder");
+        if (rp === undefined) delete it.reorderPoint;
+        else it.reorderPoint = rp;
         it.barcode = document.getElementById("eiBarcode").value.trim();
         it.lastSupplier = document.getElementById("eiSupplier").value.trim();
         it.expiryDate = document.getElementById("eiExpiry").value || "";
@@ -5861,39 +6007,714 @@
       }
 
       /* -------- manual quick adjustment -------- */
-      function openManualMoveModal(outlet, itemId) {
-        const it = state.stock[outlet].find((x) => x.id === itemId);
-        showModal(`<h3>Quick adjustment — ${esc(it.name)}</h3>
-    <p class="hint" style="margin-top:-8px;">For corrections, waste, or breakage. For deliveries, use the Stock In menu instead.</p>
-    <div class="field"><label>Direction</label><select id="mmDir"><option value="in">Stock In (correction)</option><option value="out">Stock Out (waste / correction)</option></select></div>
-    <div class="field"><label>Quantity (${esc(it.unit)})</label><input id="mmQty" type="number" step="0.1" placeholder="0"></div>
-    <div class="field"><label>Note</label><input id="mmNote" placeholder="e.g. Broken bottle"></div>
-    <div class="modal-actions"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary btn-sm" style="width:auto" onclick="saveManualMove('${outlet}','${itemId}')">Save movement</button></div>`);
+
+      /* ---------------- COST & PRICE ---------------- */
+      function renderCostPrice() {
+        const wrap = document.createElement("div");
+        const rows = applyRowFilters(liveRowsForOutlet(state.outlet));
+        let html = `<h1 class="page-title">Cost &amp; Price</h1>
+  <p class="page-sub">Revise purchase cost for ${esc(state.outlet)} without touching quantities. Every change is logged.</p>
+  <div class="panel"><div class="panel-head"><h3>${rows.length} item(s)</h3></div>`;
+        html += ledgerFilterBar();
+        if (rows.length === 0) {
+          html += `<div class="empty-state"><div class="display">No items to show</div><p>Try adjusting your filters.</p></div>`;
+        } else {
+          html += `<table><thead><tr><th>SKU</th><th>Item</th><th>Unit</th><th class="right">On hand</th>
+      <th class="right">Current cost</th><th class="right">New cost</th><th class="right">Stock value</th></tr></thead><tbody>`;
+          rows.forEach((it) => {
+            html += `<tr><td class="mono">${esc(it.sku)}</td><td>${esc(it.name)}</td><td class="mono">${esc(it.unit)}</td>
+        <td class="right num">${fmtNum(it.closing)}</td><td class="right num">${fmtMoney(it.price)}</td>
+        <td class="right"><input class="mini-input num" style="width:90px;" type="number" step="0.01" min="0" value="${it.price}" onchange="updateItemCost('${it.id}', this.value)"></td>
+        <td class="right num">${fmtMoney(it.value)}</td></tr>`;
+          });
+          html += `</tbody></table>`;
+        }
+        html += `<div class="hint">Receiving stock with a unit cost also updates an item's cost, so this screen is for corrections and supplier price changes between deliveries.</div></div>`;
+        wrap.innerHTML = html;
+        return wrap;
       }
-      async function saveManualMove(outlet, itemId) {
-        const items = state.stock[outlet];
-        const it = items.find((x) => x.id === itemId);
-        const dir = document.getElementById("mmDir").value;
-        const qty = parseFloat(document.getElementById("mmQty").value);
-        const note = document.getElementById("mmNote").value.trim();
-        if (!qty || qty <= 0) {
+      async function updateItemCost(itemId, val) {
+        const outlet = state.outlet;
+        const it = (state.stock[outlet] || []).find((x) => x.id === itemId);
+        if (!it) return;
+        const n = parseFloat(val);
+        if (isNaN(n) || n < 0) {
+          toast("Enter a cost of 0 or more.", true);
+          renderApp();
+          return;
+        }
+        const old = it.price;
+        if (round2(n) === round2(old)) return;
+        it.price = round2(n);
+        await saveStock(outlet);
+        await logMovement(outlet, {
+          type: "cost-update",
+          sku: it.sku,
+          name: it.name,
+          qty: 0,
+          value: it.price,
+          note: `Cost updated: ${fmtMoney(old)} → ${fmtMoney(it.price)}`,
+        });
+        toast(`Cost updated for ${it.name}.`);
+        renderApp();
+      }
+
+      /* ---------------- REORDER POINTS ---------------- */
+      function renderReorderPoints() {
+        const wrap = document.createElement("div");
+        const rows = applyRowFilters(liveRowsForOutlet(state.outlet));
+        const below = rows.filter(
+          (it) =>
+            it.reorderPoint !== undefined && it.closing <= it.reorderPoint,
+        ).length;
+        const notSet = rows.filter(
+          (it) => it.reorderPoint === undefined,
+        ).length;
+        let html = `<h1 class="page-title">Reorder Points</h1>
+  <p class="page-sub">The stock level at which ${esc(state.outlet)} should reorder. Items at or below their point appear on the Dashboard reorder list.</p>
+  <div class="cards-row">
+    <div class="stat-card"><div class="label">ITEMS</div><div class="value">${rows.length}</div></div>
+    <div class="stat-card"><div class="label">AT OR BELOW POINT</div><div class="value ${below ? "red" : "teal"}">${below}</div></div>
+    <div class="stat-card"><div class="label">NO POINT SET</div><div class="value ${notSet ? "amber" : "teal"}">${notSet}</div></div>
+  </div>
+  <div class="panel"><div class="panel-head"><h3>Set reorder points</h3></div>`;
+        html += ledgerFilterBar();
+        if (rows.length === 0) {
+          html += `<div class="empty-state"><div class="display">No items to show</div><p>Try adjusting your filters.</p></div>`;
+        } else {
+          html += `<table><thead><tr><th>SKU</th><th>Item</th><th>Unit</th><th class="right">On hand</th>
+      <th class="right">Reorder point</th><th>Status</th></tr></thead><tbody>`;
+          rows.forEach((it) => {
+            const rp = it.reorderPoint;
+            const tag =
+              rp === undefined
+                ? '<span class="tag tag-muted">Not set</span>'
+                : it.closing <= rp
+                  ? '<span class="tag tag-red">Reorder</span>'
+                  : '<span class="tag tag-teal">OK</span>';
+            html += `<tr><td class="mono">${esc(it.sku)}</td><td>${esc(it.name)}</td><td class="mono">${esc(it.unit)}</td>
+        <td class="right num">${fmtNum(it.closing)}</td>
+        <td class="right"><input class="mini-input num" style="width:90px;" type="number" step="any" min="0" placeholder="—" value="${rp === undefined ? "" : rp}" onchange="updateReorderPoint('${it.id}', this.value)"></td>
+        <td>${tag}</td></tr>`;
+          });
+          html += `</tbody></table>`;
+        }
+        html += `<div class="hint">Leave blank for items you never reorder — blank items are left off the reorder list rather than treated as zero.</div></div>`;
+        wrap.innerHTML = html;
+        return wrap;
+      }
+      async function updateReorderPoint(itemId, val) {
+        const outlet = state.outlet;
+        const it = (state.stock[outlet] || []).find((x) => x.id === itemId);
+        if (!it) return;
+        const raw = String(val).trim();
+        if (raw === "") delete it.reorderPoint;
+        else {
+          const n = parseFloat(raw);
+          if (isNaN(n) || n < 0) {
+            toast(
+              "Enter a reorder point of 0 or more, or leave it blank.",
+              true,
+            );
+            renderApp();
+            return;
+          }
+          it.reorderPoint = round2(n);
+        }
+        await saveStock(outlet);
+        renderApp();
+      }
+
+      /* ---------------- EXPENSES ---------------- */
+      function renderExpenses() {
+        const wrap = document.createElement("div");
+        wrap.innerHTML =
+          `<h1 class="page-title">Expenses</h1>
+  <p class="page-sub">What ${esc(state.outlet)} spent on stock — every delivery and received purchase order.</p>` +
+          renderExpenseReportHtml();
+        return wrap;
+      }
+
+      /* ---------------- REPORT HELPERS ---------------- */
+      function firstOfMonthStr() {
+        const d = new Date();
+        return (
+          d.getFullYear() +
+          "-" +
+          String(d.getMonth() + 1).padStart(2, "0") +
+          "-01"
+        );
+      }
+      function dayBefore(iso) {
+        const d = new Date(iso + "T00:00:00");
+        d.setDate(d.getDate() - 1);
+        return (
+          d.getFullYear() +
+          "-" +
+          String(d.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(d.getDate()).padStart(2, "0")
+        );
+      }
+      function ensureRpt() {
+        if (!state.rpt)
+          state.rpt = {
+            from: firstOfMonthStr(),
+            to: todayStr(),
+            type: "",
+            vendor: "",
+            q: "",
+          };
+        return state.rpt;
+      }
+      function setRpt(field, val) {
+        ensureRpt()[field] = val;
+        renderApp();
+      }
+      function rangeBarHtml(extraHtml) {
+        const r = ensureRpt();
+        return `<div class="toolbar" style="margin-bottom:12px;">
+    <label style="font-size:12px;color:var(--muted);">From</label>
+    <input type="date" class="search-input" style="min-width:auto;" value="${r.from}" max="${todayStr()}" onchange="setRpt('from', this.value)">
+    <label style="font-size:12px;color:var(--muted);">To</label>
+    <input type="date" class="search-input" style="min-width:auto;" value="${r.to}" max="${todayStr()}" onchange="setRpt('to', this.value)">
+    ${extraHtml || ""}
+  </div>`;
+      }
+      const MOVEMENT_TYPES = {
+        "sale-out": "Sales",
+        "stock-in": "Stock In",
+        "purchase-received": "PO Received",
+        "transfer-in": "Transfer In",
+        "transfer-out": "Transfer Out",
+        "manual-in": "Manual In",
+        "manual-out": "Manual Out",
+        "stock-count": "Stock Count",
+        "opening-adjustment": "Opening Adj.",
+        "physical-count": "Count Adj.",
+        "cost-update": "Cost Update",
+      };
+
+      /* ---------------- REPORT: STOCK SUMMARY ---------------- */
+      function stockSummaryRows(outlet, from, to) {
+        const openBySku = {};
+        rowsAsOf(outlet, dayBefore(from)).forEach(
+          (x) => (openBySku[x.sku] = x.closing),
+        );
+        const moved = {};
+        (state.movements[outlet] || []).forEach((m) => {
+          if (m.type === "physical-count" || m.type === "cost-update") return;
+          if (m.date < from || m.date > to) return;
+          const q = Number(m.qty) || 0;
+          if (!moved[m.sku]) moved[m.sku] = { qtyIn: 0, qtyOut: 0 };
+          if (q > 0) moved[m.sku].qtyIn = round2(moved[m.sku].qtyIn + q);
+          else if (q < 0) moved[m.sku].qtyOut = round2(moved[m.sku].qtyOut - q);
+        });
+        return rowsAsOf(outlet, to).map((r) => {
+          const mv = moved[r.sku] || { qtyIn: 0, qtyOut: 0 };
+          return Object.assign({}, r, {
+            opening: round2(openBySku[r.sku] || 0),
+            qtyIn: mv.qtyIn,
+            qtyOut: mv.qtyOut,
+          });
+        });
+      }
+      function renderStockSummary() {
+        const wrap = document.createElement("div");
+        const r = ensureRpt();
+        const rows = applyRowFilters(
+          stockSummaryRows(state.outlet, r.from, r.to),
+        );
+        state.currentLedgerRows = rows;
+        const totalValue = round2(rows.reduce((s, x) => s + x.value, 0));
+        const moved = rows.filter((x) => x.qtyIn || x.qtyOut).length;
+        let html = `<h1 class="page-title">Stock Summary</h1>
+  <p class="page-sub">Opening, In, Out and Closing for ${esc(state.outlet)} over a date range.</p>
+  <div class="cards-row">
+    <div class="stat-card"><div class="label">ITEMS</div><div class="value">${rows.length}</div></div>
+    <div class="stat-card"><div class="label">ITEMS THAT MOVED</div><div class="value">${moved}</div></div>
+    <div class="stat-card"><div class="label">CLOSING VALUE</div><div class="value amber">${fmtMoney(totalValue)}</div></div>
+  </div>
+  <div class="panel"><div class="panel-head"><h3>${fmtDate(r.from)} &rarr; ${fmtDate(r.to)}</h3>
+    <div class="toolbar"><button class="btn btn-ghost btn-sm" onclick="exportStockSummary()">Export Excel</button></div></div>`;
+        html += rangeBarHtml();
+        html += ledgerFilterBar();
+        if (r.from > r.to) {
+          html += `<div class="empty-state"><div class="display">Check the dates</div><p>The From date is after the To date.</p></div>`;
+        } else if (rows.length === 0) {
+          html += `<div class="empty-state"><div class="display">No items to show</div><p>Try adjusting your filters.</p></div>`;
+        } else {
+          html += `<table><thead><tr><th>SKU</th><th>Category</th><th>Item</th><th>Unit</th>
+      <th class="right">Opening</th><th class="right">In</th><th class="right">Out</th><th class="right">Closing</th>
+      <th class="right">Price</th><th class="right">Value</th></tr></thead><tbody>`;
+          rows.forEach((x) => {
+            html += `<tr><td class="mono">${esc(x.sku)}</td><td>${esc(x.cat)}</td><td>${esc(x.name)}</td><td class="mono">${esc(x.unit)}</td>
+        <td class="right num">${fmtNum(x.opening)}</td>
+        <td class="right num" style="color:var(--teal)">${x.qtyIn ? "+" + fmtNum(x.qtyIn) : "0"}</td>
+        <td class="right num" style="color:var(--red)">${x.qtyOut ? "-" + fmtNum(x.qtyOut) : "0"}</td>
+        <td class="right num"><b>${fmtNum(x.closing)}</b></td>
+        <td class="right num">${fmtMoney(x.price)}</td><td class="right num">${fmtMoney(x.value)}</td></tr>`;
+          });
+          html += `</tbody></table><p style="text-align:right;font-size:13px;margin-top:8px;"><b>Closing value: ${fmtMoney(totalValue)}</b></p>`;
+        }
+        html += `</div>`;
+        wrap.innerHTML = html;
+        return wrap;
+      }
+      function exportStockSummary() {
+        const rows = state.currentLedgerRows || [];
+        if (rows.length === 0) {
+          toast("Nothing to export.", true);
+          return;
+        }
+        if (!checkXlsxReady()) return;
+        const r = ensureRpt();
+        try {
+          const aoa = [
+            [
+              "SKU",
+              "Category",
+              "Item",
+              "Unit",
+              "Opening",
+              "In",
+              "Out",
+              "Closing",
+              "Price",
+              "Value",
+            ],
+          ];
+          rows.forEach((x) =>
+            aoa.push([
+              x.sku,
+              x.cat,
+              x.name,
+              x.unit,
+              x.opening,
+              x.qtyIn,
+              x.qtyOut,
+              x.closing,
+              x.price,
+              x.value,
+            ]),
+          );
+          const ws = XLSX.utils.aoa_to_sheet(aoa);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Stock Summary");
+          XLSX.writeFile(
+            wb,
+            state.outlet.replace(/\s+/g, "_") +
+              "_stock_summary_" +
+              r.from +
+              "_to_" +
+              r.to +
+              ".xlsx",
+          );
+        } catch (e) {
+          toast("Export failed.", true);
+        }
+      }
+
+      /* ---------------- REPORT: STOCK MOVEMENT ---------------- */
+      function movementReportRows() {
+        const r = ensureRpt();
+        const q = (r.q || "").toLowerCase();
+        return (state.movements[state.outlet] || []).filter((m) => {
+          if (m.date < r.from || m.date > r.to) return false;
+          if (r.type && m.type !== r.type) return false;
+          if (
+            q &&
+            !(
+              (m.sku || "").toLowerCase().includes(q) ||
+              (m.name || "").toLowerCase().includes(q) ||
+              (m.note || "").toLowerCase().includes(q)
+            )
+          )
+            return false;
+          return true;
+        });
+      }
+      function renderMovementReport() {
+        const wrap = document.createElement("div");
+        const r = ensureRpt();
+        const rows = movementReportRows();
+        const totalIn = round2(
+          rows.filter((m) => m.qty > 0).reduce((s, m) => s + m.qty, 0),
+        );
+        const totalOut = round2(
+          rows.filter((m) => m.qty < 0).reduce((s, m) => s - m.qty, 0),
+        );
+        let html = `<h1 class="page-title">Stock Movement</h1>
+  <p class="page-sub">Every stock event for ${esc(state.outlet)} in a date range, filtered by type.</p>
+  <div class="cards-row">
+    <div class="stat-card"><div class="label">MOVEMENTS</div><div class="value">${rows.length}</div></div>
+    <div class="stat-card"><div class="label">TOTAL IN</div><div class="value teal">+${fmtNum(totalIn)}</div></div>
+    <div class="stat-card"><div class="label">TOTAL OUT</div><div class="value red">-${fmtNum(totalOut)}</div></div>
+  </div>
+  <div class="panel"><div class="panel-head"><h3>${fmtDate(r.from)} &rarr; ${fmtDate(r.to)}</h3>
+    <div class="toolbar"><button class="btn btn-ghost btn-sm" onclick="exportMovementReport()">Export Excel</button></div></div>`;
+        const typeOptions =
+          `<option value="">All types</option>` +
+          Object.keys(MOVEMENT_TYPES)
+            .map(
+              (t) =>
+                `<option value="${t}" ${r.type === t ? "selected" : ""}>${MOVEMENT_TYPES[t]}</option>`,
+            )
+            .join("");
+        html +=
+          rangeBarHtml(`<select class="search-input" style="min-width:150px;" onchange="setRpt('type', this.value)">${typeOptions}</select>
+    <input class="search-input" placeholder="Search SKU, item or note" value="${esc(r.q || "")}" onchange="setRpt('q', this.value)">`);
+        if (rows.length === 0) {
+          html += `<div class="empty-state"><div class="display">No movements in this range</div><p>Try a wider date range or a different type.</p></div>`;
+        } else {
+          html += `<table><thead><tr><th>Date</th><th>Type</th><th>SKU</th><th>Item</th><th class="right">Qty</th><th class="right">Value</th><th>Note</th><th>By</th></tr></thead><tbody>`;
+          rows.forEach((m) => {
+            html += `<tr><td class="mono">${fmtDate(m.date)}</td><td>${esc(MOVEMENT_TYPES[m.type] || m.type)}</td>
+        <td class="mono">${esc(m.sku)}</td><td>${esc(m.name)}</td>
+        <td class="right num" style="color:${m.qty < 0 ? "var(--red)" : "var(--teal)"}">${m.qty > 0 ? "+" : ""}${fmtNum(m.qty)}</td>
+        <td class="right num">${m.value !== null && m.value !== undefined ? fmtMoney(m.value) : "—"}</td>
+        <td style="font-size:12px;color:var(--muted);">${esc(m.note)}</td><td class="mono" style="font-size:12px;">${esc(m.user)}</td></tr>`;
+          });
+          html += `</tbody></table>`;
+        }
+        html += `</div>`;
+        wrap.innerHTML = html;
+        return wrap;
+      }
+      function exportMovementReport() {
+        const rows = movementReportRows();
+        if (rows.length === 0) {
+          toast("Nothing to export.", true);
+          return;
+        }
+        if (!checkXlsxReady()) return;
+        const r = ensureRpt();
+        try {
+          const aoa = [
+            ["Date", "Type", "SKU", "Item", "Qty", "Value", "Note", "By"],
+          ];
+          rows.forEach((m) =>
+            aoa.push([
+              m.date,
+              MOVEMENT_TYPES[m.type] || m.type,
+              m.sku,
+              m.name,
+              m.qty,
+              m.value === null || m.value === undefined ? "" : m.value,
+              m.note,
+              m.user,
+            ]),
+          );
+          const ws = XLSX.utils.aoa_to_sheet(aoa);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Stock Movement");
+          XLSX.writeFile(
+            wb,
+            state.outlet.replace(/\s+/g, "_") +
+              "_stock_movement_" +
+              r.from +
+              "_to_" +
+              r.to +
+              ".xlsx",
+          );
+        } catch (e) {
+          toast("Export failed.", true);
+        }
+      }
+
+      /* ---------------- REPORT: VENDOR STATEMENT ---------------- */
+      function vendorStatementRows() {
+        const r = ensureRpt();
+        return (state.movements[state.outlet] || []).filter((m) => {
+          if (m.type !== "stock-in" && m.type !== "purchase-received")
+            return false;
+          if (m.date < r.from || m.date > r.to) return false;
+          if (r.vendor && (m.supplier || "") !== r.vendor) return false;
+          return true;
+        });
+      }
+      function renderVendorStatement() {
+        const wrap = document.createElement("div");
+        const r = ensureRpt();
+        const rows = vendorStatementRows();
+        const totalQty = round2(
+          rows.reduce((s, m) => s + (Number(m.qty) || 0), 0),
+        );
+        const totalValue = round2(
+          rows.reduce((s, m) => s + (Number(m.value) || 0), 0),
+        );
+        let html = `<h1 class="page-title">Vendor Statement</h1>
+  <p class="page-sub">What ${esc(state.outlet)} received from a vendor over a date range, and what it cost.</p>
+  <div class="cards-row">
+    <div class="stat-card"><div class="label">LINES</div><div class="value">${rows.length}</div></div>
+    <div class="stat-card"><div class="label">TOTAL QTY</div><div class="value">${fmtNum(totalQty)}</div></div>
+    <div class="stat-card"><div class="label">TOTAL COST</div><div class="value amber">${fmtMoney(totalValue)}</div></div>
+  </div>
+  <div class="panel"><div class="panel-head"><h3>${r.vendor ? esc(r.vendor) : "All vendors"} &middot; ${fmtDate(r.from)} &rarr; ${fmtDate(r.to)}</h3>
+    <div class="toolbar"><button class="btn btn-ghost btn-sm" onclick="exportVendorStatement()">Export Excel</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportVendorStatementPDF()">Export PDF</button></div></div>`;
+        const vendorOptions =
+          `<option value="">All vendors</option>` +
+          state.suppliers
+            .map(
+              (v) =>
+                `<option value="${esc(v.name)}" ${r.vendor === v.name ? "selected" : ""}>${esc(v.name)}</option>`,
+            )
+            .join("");
+        html += rangeBarHtml(
+          `<select class="search-input" style="min-width:170px;" onchange="setRpt('vendor', this.value)">${vendorOptions}</select>`,
+        );
+        if (rows.length === 0) {
+          html += `<div class="empty-state"><div class="display">Nothing received in this range</div><p>Try a wider date range or another vendor.</p></div>`;
+        } else {
+          html += `<table><thead><tr><th>Date</th><th>Vendor</th><th>Reference</th><th>SKU</th><th>Item</th><th class="right">Qty</th><th class="right">Cost</th></tr></thead><tbody>`;
+          rows.forEach((m) => {
+            html += `<tr><td class="mono">${fmtDate(m.date)}</td><td>${esc(m.supplier || "—")}</td><td class="mono" style="font-size:12px;">${esc(m.ref || "—")}</td>
+        <td class="mono">${esc(m.sku)}</td><td>${esc(m.name)}</td>
+        <td class="right num">${fmtNum(m.qty)}</td><td class="right num">${m.value !== null && m.value !== undefined ? fmtMoney(m.value) : "—"}</td></tr>`;
+          });
+          html += `</tbody></table><p style="text-align:right;font-size:13px;margin-top:8px;"><b>Total: ${fmtMoney(totalValue)}</b></p>`;
+        }
+        html += `</div>`;
+        wrap.innerHTML = html;
+        return wrap;
+      }
+      function exportVendorStatement() {
+        const rows = vendorStatementRows();
+        if (rows.length === 0) {
+          toast("Nothing to export.", true);
+          return;
+        }
+        if (!checkXlsxReady()) return;
+        const r = ensureRpt();
+        try {
+          const aoa = [
+            ["Date", "Vendor", "Reference", "SKU", "Item", "Qty", "Cost"],
+          ];
+          rows.forEach((m) =>
+            aoa.push([
+              m.date,
+              m.supplier || "",
+              m.ref || "",
+              m.sku,
+              m.name,
+              m.qty,
+              m.value === null || m.value === undefined ? "" : m.value,
+            ]),
+          );
+          const ws = XLSX.utils.aoa_to_sheet(aoa);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Vendor Statement");
+          XLSX.writeFile(
+            wb,
+            (r.vendor || "all_vendors").replace(/\s+/g, "_") +
+              "_statement_" +
+              r.from +
+              "_to_" +
+              r.to +
+              ".xlsx",
+          );
+        } catch (e) {
+          toast("Export failed.", true);
+        }
+      }
+      function exportVendorStatementPDF() {
+        const rows = vendorStatementRows();
+        if (rows.length === 0) {
+          toast("Nothing to export.", true);
+          return;
+        }
+        const r = ensureRpt();
+        let total = 0;
+        let html = `<h2>${esc(state.org.name || "Ostro Nightlife")} — Vendor Statement</h2>
+    <p>${esc(state.outlet)} &middot; ${r.vendor ? esc(r.vendor) : "All vendors"} &middot; ${fmtDate(r.from)} to ${fmtDate(r.to)}</p>
+    <table><thead><tr><th>Date</th><th>Vendor</th><th>Reference</th><th>SKU</th><th>Item</th><th>Qty</th><th>Cost</th></tr></thead><tbody>`;
+        rows.forEach((m) => {
+          total += Number(m.value) || 0;
+          html += `<tr><td>${fmtDate(m.date)}</td><td>${esc(m.supplier || "—")}</td><td>${esc(m.ref || "—")}</td><td>${esc(m.sku)}</td><td>${esc(m.name)}</td><td>${fmtNum(m.qty)}</td><td>${m.value ? fmtMoney(m.value) : "—"}</td></tr>`;
+        });
+        html += `</tbody></table><p><b>Total: ${fmtMoney(total)}</b></p>
+    <p style="font-size:12px;color:#666;margin-top:20px;">${esc(state.templates.vendorFooterNote || "")}</p>`;
+        printHtmlDoc("Vendor Statement", html);
+      }
+
+      /* ---------------- ITEMS (item master) ---------------- */
+      function renderItems() {
+        const wrap = document.createElement("div");
+        const rows = applyRowFilters(liveRowsForOutlet(state.outlet));
+        let html = `<h1 class="page-title">Items</h1>
+  <p class="page-sub">The item master for ${esc(state.outlet)}. Quantities change through Stock Count, Stock Adjustment and Stock In.</p>
+  <div class="panel">
+    <div class="panel-head"><h3>${rows.length} item(s)</h3>
+      <div class="toolbar"><button class="btn btn-ghost btn-sm" onclick="openAddItemModal()">+ Add item</button></div>
+    </div>`;
+        html += ledgerFilterBar();
+        if (rows.length === 0) {
+          html += `<div class="empty-state"><div class="display">No items to show</div><p>Try adjusting your filters, or add a stock item.</p></div>`;
+        } else {
+          html += `<table><thead><tr><th>SKU</th><th>Category</th><th>Item</th><th>Unit</th><th>Barcode</th>
+      <th class="right">Price</th><th class="right">On hand</th><th>Expiry</th><th></th></tr></thead><tbody>`;
+          rows.forEach((it) => {
+            html += `<tr><td class="mono">${esc(it.sku)}</td><td>${esc(it.cat)}${it.subcat ? ` <span style="color:var(--muted);">/ ${esc(it.subcat)}</span>` : ""}</td>
+        <td><button class="item-link" onclick="openItemDetail('${it._outlet}','${it.id}')">${esc(it.name)}</button></td>
+        <td class="mono">${esc(it.unit)}</td><td class="mono" style="font-size:12px;">${esc(it.barcode || "—")}</td>
+        <td class="right num">${fmtMoney(it.price)}</td><td class="right num"><b>${fmtNum(it.closing)}</b></td>
+        <td class="mono" style="font-size:12px;">${it.expiryDate ? fmtDate(it.expiryDate) : "—"}</td>
+        <td class="right"><button class="btn btn-ghost btn-sm" onclick="openEditItemModal('${it._outlet}','${it.id}')">Edit</button></td></tr>`;
+          });
+          html += `</tbody></table>`;
+        }
+        html += `</div>`;
+        wrap.innerHTML = html;
+        return wrap;
+      }
+
+      /* ---------------- STOCK ADJUSTMENT ---------------- */
+      const ADJUST_REASONS = [
+        "Breakage",
+        "Waste / spoilage",
+        "Internal use",
+        "Found stock",
+        "Data-entry fix",
+        "Other",
+      ];
+      function renderAdjustment() {
+        const wrap = document.createElement("div");
+        const items = state.stock[state.outlet] || [];
+        const pre = state.adjustPrefill || {};
+        state.adjustPrefill = null;
+        const recent = (state.movements[state.outlet] || [])
+          .filter((m) =>
+            ["manual-in", "manual-out", "opening-adjustment"].includes(m.type),
+          )
+          .slice(0, 20);
+        let html = `<h1 class="page-title">Stock Adjustment</h1>
+  <p class="page-sub">Manual corrections for ${esc(state.outlet)}: breakage, waste, internal use, found stock or data-entry fixes.</p>
+  <div class="panel"><div class="panel-head"><h3>New adjustment</h3></div>
+    <div class="line-form">
+      <div class="field" style="min-width:140px;margin-bottom:0;"><label>Date</label>
+        <input id="adjDate" type="date" value="${todayStr()}" max="${todayStr()}"></div>
+      <div class="field" style="flex:2;min-width:200px;margin-bottom:0;"><label>Item / SKU</label>
+        <input id="adjSku" list="adjSkuList" value="${esc(pre.sku || "")}" placeholder="Search SKU or scan barcode">
+        <datalist id="adjSkuList">${items.map((it) => `<option value="${esc(it.sku)}">${esc(it.name)}</option>`).join("")}</datalist></div>
+      <div class="field" style="min-width:170px;margin-bottom:0;"><label>Type</label>
+        <select id="adjDir">
+          <option value="in">Stock In (+)</option>
+          <option value="out">Stock Out (&minus;)</option>
+          <option value="opening">Correct opening balance</option>
+        </select></div>
+      <div class="field" style="min-width:110px;margin-bottom:0;"><label>Quantity</label>
+        <input id="adjQty" type="number" step="any" min="0" placeholder="0"></div>
+      <div class="field" style="min-width:150px;margin-bottom:0;"><label>Reason</label>
+        <select id="adjReason">${ADJUST_REASONS.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join("")}</select></div>
+      <div class="field" style="flex:1;min-width:160px;margin-bottom:0;"><label>Note</label>
+        <input id="adjNote" value="${esc(pre.note || "")}" placeholder="optional detail"></div>
+      <button class="btn btn-ghost btn-sm" onclick="openScanModal('adjSku')">&#128247; Scan</button>
+      <button class="btn btn-teal btn-sm" onclick="submitAdjustment()">Save adjustment</button>
+    </div>
+    <div class="hint">"Correct opening balance" replaces the item's opening figure — for fixing a wrong starting number, not for stock that moved.</div>
+  </div>
+  <div class="panel"><div class="panel-head"><h3>Recent adjustments</h3></div>`;
+        if (recent.length === 0) {
+          html += `<div class="empty-state"><div class="display">No adjustments yet</div><p>Corrections you make here appear in this list and in the Movement Log.</p></div>`;
+        } else {
+          html += `<table><thead><tr><th>Date</th><th>Type</th><th>SKU</th><th>Item</th><th class="right">Qty</th><th>Reason / note</th><th>By</th></tr></thead><tbody>`;
+          recent.forEach((m) => {
+            const tag =
+              m.type === "manual-in"
+                ? '<span class="tag tag-teal">Stock In</span>'
+                : m.type === "manual-out"
+                  ? '<span class="tag tag-amber">Stock Out</span>'
+                  : '<span class="tag tag-blue">Opening Adj.</span>';
+            html += `<tr><td class="mono">${fmtDate(m.date)}</td><td>${tag}</td><td class="mono">${esc(m.sku)}</td><td>${esc(m.name)}</td>
+        <td class="right num" style="color:${m.qty < 0 ? "var(--red)" : "var(--teal)"}">${m.qty > 0 ? "+" : ""}${fmtNum(m.qty)}</td>
+        <td style="font-size:12px;color:var(--muted);">${esc(m.note)}</td><td class="mono" style="font-size:12px;">${esc(m.user)}</td></tr>`;
+          });
+          html += `</tbody></table>`;
+        }
+        html += `</div>`;
+        wrap.innerHTML = html;
+        return wrap;
+      }
+      async function submitAdjustment() {
+        const outlet = state.outlet;
+        const val = document.getElementById("adjSku").value.trim();
+        const it = (state.stock[outlet] || []).find(
+          (x) =>
+            x.sku.toLowerCase() === val.toLowerCase() ||
+            (x.barcode && x.barcode === val),
+        );
+        if (!it) {
+          toast("Pick an item from the list first.", true);
+          return;
+        }
+        const dir = document.getElementById("adjDir").value;
+        const qty = parseFloat(document.getElementById("adjQty").value);
+        const date = document.getElementById("adjDate").value || todayStr();
+        const reason = document.getElementById("adjReason").value;
+        const note = document.getElementById("adjNote").value.trim();
+        if (isNaN(qty) || qty < 0) {
+          toast("Enter a quantity of 0 or more.", true);
+          return;
+        }
+        if (dir !== "opening" && qty === 0) {
           toast("Enter a quantity greater than 0.", true);
           return;
         }
-        if (dir === "in") it.qtyIn = round2((it.qtyIn || 0) + qty);
-        else it.qtyOut = round2((it.qtyOut || 0) + qty);
+        const fullNote = reason + (note ? " — " + note : "");
+        let logged;
+        if (dir === "in") {
+          it.qtyIn = round2((it.qtyIn || 0) + qty);
+          logged = { type: "manual-in", qty };
+        } else if (dir === "out") {
+          it.qtyOut = round2((it.qtyOut || 0) + qty);
+          logged = { type: "manual-out", qty: -qty };
+        } else {
+          const old = it.opening || 0;
+          it.opening = round2(qty);
+          logged = {
+            type: "opening-adjustment",
+            qty: round2(it.opening - old),
+            note: `Opening corrected: ${old} → ${it.opening}`,
+          };
+        }
         await saveStock(outlet);
         await logMovement(outlet, {
-          type: dir === "in" ? "manual-in" : "manual-out",
+          type: logged.type,
+          date,
           sku: it.sku,
           name: it.name,
-          qty: dir === "in" ? qty : -qty,
-          note,
+          qty: logged.qty,
+          note: logged.note ? logged.note + " — " + fullNote : fullNote,
         });
-        closeModal();
-        toast("Movement recorded.");
+        toast(`Adjustment saved for ${it.name}.`);
         renderApp();
+      }
+
+      /* -------- pages re-homed from Settings -------- */
+      function renderCategoriesPage() {
+        const wrap = document.createElement("div");
+        wrap.innerHTML =
+          `<h1 class="page-title">Categories</h1>
+  <p class="page-sub">How stock items are grouped across every outlet.</p>` +
+          renderSettingsCategories();
+        return wrap;
+      }
+      function renderVendorsPage() {
+        const wrap = document.createElement("div");
+        wrap.innerHTML =
+          `<h1 class="page-title">Vendors</h1>
+  <p class="page-sub">Vendors used in Stock In and Purchase Orders.</p>` +
+          renderSettingsSuppliers();
+        return wrap;
+      }
+      function renderCountReport() {
+        const wrap = document.createElement("div");
+        wrap.innerHTML =
+          `<h1 class="page-title">Stock Count Report</h1>
+  <p class="page-sub">Every posted stock count for ${esc(state.outlet)}, with its variances. Counts are recorded for comparison and never change stock.</p>` +
+          renderCountHistoryHtml(state.outlet);
+        return wrap;
       }
 
       /* ---------------- STOCK COUNT ---------------- */
@@ -5922,7 +6743,6 @@
           date: todayStr(),
           note: "",
           importMode: "replace",
-          showBook: false,
           filters: { search: "", cat: "", uncounted: false },
           counts: {},
           unmatched: [],
@@ -5931,21 +6751,13 @@
       function countDraftSize(d) {
         return d ? Object.keys(d.counts).length : 0;
       }
-      function stockCountButtonHtml() {
-        const n = countDraftSize(getCountDraft(state.outlet));
-        return `<button class="btn btn-ghost btn-sm" onclick="openStockCount()">${n ? `Resume stock count (${n})` : "Stock count"}</button>`;
-      }
-      function openStockCount() {
+      // Called when the Stock Count sub-nav opens (setTab has already picked a real outlet).
+      // A draft with counts in it is kept, so leaving and coming back resumes the count.
+      function ensureCountDraft() {
         const d = getCountDraft(state.outlet);
         if (!d || (!countDraftSize(d) && !d.unmatched.length))
           state.countDrafts[state.outlet] = newCountDraft();
-        state.countOpen = true;
         state.countSub = "count";
-        renderApp();
-      }
-      function closeStockCount() {
-        state.countOpen = false;
-        renderApp();
       }
       function setCountSub(sub) {
         state.countSub = sub;
@@ -5968,30 +6780,37 @@
           return;
         state.countDrafts[state.outlet] = null;
         saveCountDraft(state.outlet);
-        state.countOpen = false;
-        renderApp();
+        setTab("ledger");
+      }
+      // Book quantity is the closing stock at the end of the count date, so a count
+      // entered days later is still compared against the right day.
+      function countBookMap(outlet, date) {
+        const map = {};
+        rowsAsOf(outlet, date).forEach((r) => (map[r.id] = r));
+        return map;
       }
       function computeCountLines(outlet, d) {
         const lines = [];
         const uncounted = [];
+        const asOf = countBookMap(outlet, d.date);
         (state.stock[outlet] || []).forEach((it) => {
           if (d.counts[it.id] === undefined) {
             uncounted.push(it);
             return;
           }
-          const book = closingOf(it);
+          const row = asOf[it.id] || { closing: closingOf(it), price: it.price };
           const counted = d.counts[it.id];
-          const variance = round2(counted - book);
+          const variance = round2(counted - row.closing);
           lines.push({
             id: it.id,
             sku: it.sku,
             name: it.name,
             unit: it.unit,
-            price: it.price,
-            book,
+            price: row.price,
+            book: row.closing,
             counted,
             variance,
-            value: round2(variance * it.price),
+            value: round2(variance * row.price),
           });
         });
         return { lines, uncounted };
@@ -6031,19 +6850,19 @@
         const wrap = document.createElement("div");
         const outlet = state.outlet;
         const d =
-          getCountDraft(outlet) || (state.countDrafts[outlet] = newCountDraft());
+          getCountDraft(outlet) ||
+          (state.countDrafts[outlet] = newCountDraft());
         const n = countDraftSize(d);
         const sub = state.countSub;
         let html = `<h1 class="page-title">Stock Count</h1>
-  <p class="page-sub">Count what's on the shelf at ${esc(outlet)}, review the variances, then post them so closing stock matches the count.</p>
-  <div style="margin-bottom:14px;"><button class="btn btn-ghost btn-sm" onclick="closeStockCount()">&larr; Back to ledger</button></div>
+  <p class="page-sub">Count what's on the shelf at ${esc(outlet)}, then post the count as a dated record. Counting never changes stock — it only compares what was found with what the system says.</p>
+  <div style="margin-bottom:14px;"><button class="btn btn-ghost btn-sm" onclick="setTab('ledger')">&larr; Back to ledger</button>
+    <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="setTab('countreport')">Count history</button></div>
   <div class="pill-tabs">
     <div class="pill-tab ${sub === "count" ? "active" : ""}" onclick="setCountSub('count')">1. Count</div>
     <div class="pill-tab ${sub === "review" ? "active" : ""}" onclick="setCountSub('review')">2. Review &amp; post${n ? " (" + n + ")" : ""}</div>
-    <div class="pill-tab ${sub === "history" ? "active" : ""}" onclick="setCountSub('history')">History</div>
   </div>`;
-        if (sub === "history") html += renderCountHistoryHtml(outlet);
-        else if (sub === "review") html += renderCountReviewHtml(outlet, d);
+        if (sub === "review") html += renderCountReviewHtml(outlet, d);
         else html += renderCountEntryHtml(outlet, d);
         wrap.innerHTML = html;
         return wrap;
@@ -6056,16 +6875,17 @@
       }
       function renderCountEntryHtml(outlet, d) {
         const items = state.stock[outlet] || [];
+        const book = countBookMap(outlet, d.date);
         const f = d.filters;
         const cats = Array.from(
           new Set(items.map((it) => it.cat).filter(Boolean)),
         ).sort();
         let html = `<div class="panel"><div class="panel-head"><h3>Count details</h3></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
-      <div class="field" style="min-width:150px;margin-bottom:0;"><label>Count date</label><input type="date" value="${d.date}" max="${todayStr()}" onchange="updateCountDraft('date', this.value)"></div>
+      <div class="field" style="min-width:150px;margin-bottom:0;"><label>Count date</label><input type="date" value="${d.date}" max="${todayStr()}" onchange="updateCountDraft('date', this.value); renderApp()"></div>
       <div class="field" style="flex:1;min-width:200px;margin-bottom:0;"><label>Counted by / note</label><input value="${esc(d.note)}" placeholder="e.g. Month-end count by bar team" onchange="updateCountDraft('note', this.value.trim())"></div>
     </div>
-    <div class="hint">Variances are measured against the live book quantity at the moment you post. Post the count before recording more sales, deliveries or transfers for ${esc(outlet)}.</div>
+    <div class="hint">Counted quantities are compared with the book stock at the end of the count date. Posting records the count for comparison — it never changes stock, In or Out.</div>
   </div>
   <div class="panel"><div class="panel-head"><h3>Import a count file</h3>
     <button class="btn btn-ghost btn-sm" onclick="downloadCountTemplate()">Download count sheet (Excel)</button></div>
@@ -6087,12 +6907,12 @@
       <input id="scSearch" class="search-input" placeholder="Filter by SKU or name" value="${esc(f.search)}" oninput="filterCountRows()">
       <select id="scCat" class="search-input" onchange="filterCountRows()"><option value="">All categories</option>${cats.map((c) => `<option value="${esc(c)}" ${c === f.cat ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>
       <label style="font-size:12px;color:var(--muted);"><input type="checkbox" id="scUncounted" ${f.uncounted ? "checked" : ""} onchange="filterCountRows()"> Only uncounted</label>
-      <label style="font-size:12px;color:var(--muted);"><input type="checkbox" ${d.showBook ? "checked" : ""} onchange="updateCountDraft('showBook', this.checked); renderApp()"> Show book qty</label>
     </div>`;
         if (items.length === 0) {
           html += `<div class="empty-state"><div class="display">No items to count</div><p>Add stock items to ${esc(outlet)} first.</p></div>`;
         } else {
-          html += `<table id="scTable"><thead><tr><th>SKU</th><th>Category</th><th>Item</th><th>Unit</th>${d.showBook ? '<th class="right">Book</th>' : ""}<th class="right">Counted</th></tr></thead><tbody>`;
+          html += `<table id="scTable"><thead><tr><th>SKU</th><th>Category</th><th>Item</th><th>Unit</th>
+      <th class="right">Book (system)</th><th class="right">Counted</th><th class="right">Variance</th></tr></thead><tbody>`;
           items.forEach((it) => {
             const text = (
               it.sku +
@@ -6102,11 +6922,13 @@
               (it.barcode || "")
             ).toLowerCase();
             const has = d.counts[it.id] !== undefined;
+            const bk = book[it.id] ? book[it.id].closing : closingOf(it);
             const show = countRowMatches(f, text, it.cat || "", has);
             html += `<tr data-q="${esc(text)}" data-cat="${esc(it.cat || "")}" ${show ? "" : "hidden"}>
         <td class="mono">${esc(it.sku)}</td><td>${esc(it.cat)}</td><td>${esc(it.name)}</td><td class="mono">${esc(it.unit)}</td>
-        ${d.showBook ? `<td class="right num">${fmtNum(closingOf(it))}</td>` : ""}
-        <td class="right"><input class="mini-input num count-input" style="width:80px;" type="number" step="any" min="0" inputmode="decimal" data-id="${it.id}" value="${has ? d.counts[it.id] : ""}" placeholder="—" onchange="setCountQty('${it.id}', this.value)" onkeydown="countKeyNav(event, this)"></td></tr>`;
+        <td class="right num">${fmtNum(bk)}</td>
+        <td class="right"><input class="mini-input num count-input" style="width:80px;" type="number" step="any" min="0" inputmode="decimal" data-id="${it.id}" data-book="${bk}" value="${has ? d.counts[it.id] : ""}" placeholder="—" onchange="setCountQty('${it.id}', this.value)" onkeydown="countKeyNav(event, this)"></td>
+        <td class="right" id="scVar_${it.id}">${has ? varianceTagHtml(round2(d.counts[it.id] - bk)) : `<span class="tag tag-muted">—</span>`}</td></tr>`;
           });
           html += `</tbody></table>
     <div class="hint">Leave an item blank if you didn't count it — blank is not the same as 0. Press Enter to jump to the next item.</div>`;
@@ -6158,6 +6980,18 @@
         const prog = document.getElementById("scProgress");
         if (prog)
           prog.textContent = `${countDraftSize(d)} of ${(state.stock[state.outlet] || []).length} counted`;
+        const cell = document.getElementById("scVar_" + itemId);
+        if (cell) {
+          const input = document.querySelector(
+            `#scTable input[data-id="${itemId}"]`,
+          );
+          const bk = input ? parseFloat(input.dataset.book) : NaN;
+          const c = d.counts[itemId];
+          cell.innerHTML =
+            c === undefined || isNaN(bk)
+              ? `<span class="tag tag-muted">—</span>`
+              : varianceTagHtml(round2(c - bk));
+        }
       }
       function countKeyNav(e, el) {
         if (e.key !== "Enter") return;
@@ -6234,10 +7068,7 @@
               .sheet_to_json(ws, { header: 1, defval: "" })
               .filter((r) => r.length > 0);
           } catch (err) {
-            toast(
-              "Could not read file — check it's a valid Excel/CSV.",
-              true,
-            );
+            toast("Could not read file — check it's a valid Excel/CSV.", true);
             return;
           }
           applyCountImport(matrix);
@@ -6389,11 +7220,60 @@
     <div class="hint">${uncounted.map((it) => esc(it.sku) + " — " + esc(it.name)).join("<br>")}</div></details>`;
         }
         html += `<div class="modal-actions" style="justify-content:flex-start;margin-top:16px;">
-    <button class="btn btn-primary" style="width:auto;padding:9px 20px;" onclick="postStockCount()" ${lines.length ? "" : "disabled"}>Post count (${t.withVariance} adjustment${t.withVariance === 1 ? "" : "s"})</button>
+    <button class="btn btn-primary" style="width:auto;padding:9px 20px;" onclick="postStockCount()" ${lines.length ? "" : "disabled"}>Post count for ${fmtDate(d.date)}</button>
     <button class="btn btn-ghost" onclick="setCountSub('count')">Back to counting</button>
     <button class="btn btn-ghost" onclick="discardStockCount()">Discard count</button></div>
-    <div class="hint">Posting sets each counted item's closing stock to the counted quantity: shortages are added to Out, surpluses to In, and each adjustment is logged as a Stock Count movement.</div></div>`;
+    <div class="hint">Posting records this count against ${fmtDate(d.date)} and shows it in the Stock Ledger as Counted and Variance for that day. Closing, In and Out stay as they are. Items with a variance are then reviewed from Reports &rarr; Stock Count, where a verifier can open the item's history and correct stock through Stock Adjustment.</div></div>`;
         return html;
+      }
+      function countScopeLabel(d) {
+        const f = d.filters || {};
+        if (f.cat) return "Category: " + f.cat;
+        if (f.search) return 'Search: "' + f.search + '"';
+        return "All items";
+      }
+      function countStatusTag(c) {
+        return c.status === "reviewed"
+          ? `<span class="tag tag-teal">Reviewed</span>`
+          : `<span class="tag tag-amber">Posted</span>`;
+      }
+      // A Verifier is anyone allowed to make Stock Adjustments.
+      function canVerifyCounts() {
+        return menuAllowed(state.user, "adjustment");
+      }
+      async function markCountReviewed(id) {
+        const outlet = state.outlet;
+        const c = findStockCount(id);
+        if (!c) return;
+        if (!canVerifyCounts()) {
+          toast("Only someone with Stock Adjustment access can review a count.", true);
+          return;
+        }
+        c.status = "reviewed";
+        c.reviewedBy = state.user.username;
+        c.reviewedAt = new Date().toISOString();
+        await storeSet("os_stockcounts:" + outlet, state.stockCounts[outlet]);
+        toast(`${c.number} marked reviewed.`);
+        closeModal();
+        renderApp();
+      }
+      function investigateCountLine(sku) {
+        const it = (state.stock[state.outlet] || []).find((x) => x.sku === sku);
+        if (!it) {
+          toast("That item no longer exists in this outlet.", true);
+          return;
+        }
+        openItemDetail(state.outlet, it.id);
+      }
+      // Step 6 of the count workflow: correct stock deliberately, referencing the count.
+      function adjustFromCount(countId, sku) {
+        const c = findStockCount(countId);
+        closeModal();
+        state.adjustPrefill = {
+          sku,
+          note: c ? `Correction per count ${c.number} dated ${fmtDate(c.date)}` : "",
+        };
+        setTab("adjustment");
       }
       function nextCountNumber(outlet, date) {
         const prefix = "SC-" + date.replace(/-/g, "") + "-";
@@ -6421,45 +7301,24 @@
         const um = d.unmatched.length;
         if (
           !window.confirm(
-            `Post stock count for ${outlet}?\n\n${lines.length} item(s) counted, ${t.withVariance} adjustment(s), net variance ${fmtSignedMoney(t.net)}.` +
+            `Post stock count for ${outlet} dated ${fmtDate(d.date)}?\n\n${lines.length} item(s) counted, ${t.withVariance} with a variance, net variance ${fmtSignedMoney(t.net)}.` +
               (um ? `\n${um} unmatched row(s) will be ignored.` : "") +
-              `\n\nClosing stock will be set to the counted quantities.`,
+              `\n\nThis records the count for comparison. Stock, In and Out are not changed.`,
           )
         )
           return;
         countPosting = true;
         try {
+          // Posting writes the count record and nothing else: no item field, no
+          // movement, no stock math. Corrections happen in Stock Adjustment.
           const number = nextCountNumber(outlet, d.date);
-          const items = state.stock[outlet];
-          for (const l of lines) {
-            const it = items.find((x) => x.id === l.id);
-            if (l.variance > 0) it.qtyIn = round2((it.qtyIn || 0) + l.variance);
-            else if (l.variance < 0)
-              it.qtyOut = round2((it.qtyOut || 0) - l.variance);
-            it.physical = l.counted;
-            it.physicalDate = d.date;
-            if (l.variance !== 0)
-              await logMovement(
-                outlet,
-                {
-                  type: "stock-count",
-                  date: d.date,
-                  sku: it.sku,
-                  name: it.name,
-                  qty: l.variance,
-                  value: l.value,
-                  ref: number,
-                  note: `${number}: book ${l.book} → counted ${l.counted}${d.note ? " — " + d.note : ""}`,
-                },
-                false,
-              );
-          }
-          await saveStock(outlet);
-          await storeSet("os_movements:" + outlet, state.movements[outlet]);
           state.stockCounts[outlet].unshift({
             id: uid("sc"),
             number,
+            outlet,
             date: d.date,
+            scope: countScopeLabel(d),
+            status: "posted",
             note: d.note,
             user: state.user.username,
             postedAt: new Date().toISOString(),
@@ -6473,11 +7332,10 @@
           await storeSet("os_stockcounts:" + outlet, state.stockCounts[outlet]);
           state.countDrafts[outlet] = null;
           saveCountDraft(outlet);
-          state.countOpen = false;
           toast(
-            `${number} posted — ${t.withVariance} adjustment(s). Closing stock now matches the count.`,
+            `${number} posted for ${fmtDate(d.date)} — ${lines.length} item(s) counted, net variance ${fmtSignedMoney(t.net)}. Stock is unchanged.`,
           );
-          renderApp();
+          setTab("ledger");
         } finally {
           countPosting = false;
         }
@@ -6490,9 +7348,11 @@
             html +
             `<div class="empty-state"><div class="display">No counts posted yet</div><p>Posted stock counts and their variance reports appear here.</p></div></div>`
           );
-        html += `<table><thead><tr><th>Count #</th><th>Date</th><th>By</th><th>Note</th><th class="right">Counted</th><th class="right">With variance</th><th class="right">Net variance</th><th></th></tr></thead><tbody>`;
+        html += `<table><thead><tr><th>Count #</th><th>Date</th><th>Status</th><th>By</th><th>Scope</th><th>Note</th><th class="right">Counted</th><th class="right">With variance</th><th class="right">Net variance</th><th></th></tr></thead><tbody>`;
         counts.forEach((c) => {
-          html += `<tr><td><button class="item-link mono" onclick="viewStockCount('${c.id}')">${esc(c.number)}</button></td><td class="mono">${fmtDate(c.date)}</td><td class="mono">${esc(c.user)}</td>
+          html += `<tr><td><button class="item-link mono" onclick="viewStockCount('${c.id}')">${esc(c.number)}</button></td><td class="mono">${fmtDate(c.date)}</td>
+        <td>${countStatusTag(c)}</td><td class="mono">${esc(c.user)}</td>
+        <td style="font-size:12px;color:var(--muted);">${esc(c.scope || "All items")}</td>
         <td style="font-size:12px;color:var(--muted);">${esc(c.note || "")}</td>
         <td class="right num">${c.itemsCounted}</td><td class="right num">${c.itemsWithVariance}</td>
         <td class="right num" style="color:${moneyColor(c.netValue)}">${fmtSignedMoney(c.netValue)}</td>
@@ -6507,23 +7367,34 @@
       function viewStockCount(id) {
         const c = findStockCount(id);
         if (!c) return;
+        const verifier = canVerifyCounts();
         const rows = sortCountLines(c.lines)
           .map(
-            (l) => `<tr><td class="mono">${esc(l.sku)}</td><td>${esc(l.name)}</td>
+            (
+              l,
+            ) => `<tr><td class="mono">${esc(l.sku)}</td><td>${esc(l.name)}</td>
         <td class="right num">${fmtNum(l.book)}</td><td class="right num">${fmtNum(l.counted)}</td>
-        <td class="right">${varianceTagHtml(l.variance)}</td><td class="right num" style="color:${moneyColor(l.value)}">${fmtSignedMoney(l.value)}</td></tr>`,
+        <td class="right">${varianceTagHtml(l.variance)}</td><td class="right num" style="color:${moneyColor(l.value)}">${fmtSignedMoney(l.value)}</td>
+        <td class="right" style="white-space:nowrap;">${
+          l.variance === 0
+            ? ""
+            : `<button class="btn btn-ghost btn-sm" onclick="investigateCountLine('${esc(l.sku)}')">History</button>${verifier ? ` <button class="btn btn-ghost btn-sm" onclick="adjustFromCount('${c.id}','${esc(l.sku)}')">Adjust</button>` : ""}`
+        }</td></tr>`,
           )
           .join("");
         showModal(
-          `<h3>${esc(c.number)} <span style="font-size:12px;color:var(--muted);">${fmtDate(c.date)} · ${esc(c.user)}</span></h3>
+          `<h3>${esc(c.number)} ${countStatusTag(c)} <span style="font-size:12px;color:var(--muted);">${fmtDate(c.date)} · ${esc(c.user)} · ${esc(c.scope || "All items")}</span></h3>
     ${c.note ? `<p class="hint" style="margin-top:-8px;">${esc(c.note)}</p>` : ""}
+    ${c.status === "reviewed" ? `<p class="hint" style="margin-top:-8px;">Reviewed by ${esc(c.reviewedBy || "")}.</p>` : ""}
     <div class="cards-row" style="margin-bottom:14px;">
       <div class="stat-card"><div class="label">COUNTED</div><div class="value">${c.itemsCounted}</div></div>
       <div class="stat-card"><div class="label">WITH VARIANCE</div><div class="value">${c.itemsWithVariance}</div></div>
       <div class="stat-card"><div class="label">NET VARIANCE</div><div class="value" style="color:${moneyColor(c.netValue)}">${fmtSignedMoney(c.netValue)}</div></div>
     </div>
-    <div style="overflow-x:auto;"><table><thead><tr><th>SKU</th><th>Item</th><th class="right">Book</th><th class="right">Counted</th><th class="right">Variance</th><th class="right">Var. value</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <div class="modal-actions"><button class="btn btn-ghost btn-sm" onclick="exportStockCountExcel('${c.id}')">Export Excel</button>
+    <div style="overflow-x:auto;"><table><thead><tr><th>SKU</th><th>Item</th><th class="right">Book</th><th class="right">Counted</th><th class="right">Variance</th><th class="right">Var. value</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="hint">Counting never changes stock. Where the count and the system disagree, open the item's history, then correct it in Stock Adjustment if the system is wrong.</div>
+    <div class="modal-actions">${c.status === "reviewed" || !verifier ? "" : `<button class="btn btn-teal btn-sm" onclick="markCountReviewed('${c.id}')">Mark reviewed</button>`}
+      <button class="btn btn-ghost btn-sm" onclick="exportStockCountExcel('${c.id}')">Export Excel</button>
       <button class="btn btn-ghost btn-sm" onclick="exportStockCountPDF('${c.id}')">Export PDF</button>
       <button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button></div>`,
           true,
@@ -6764,7 +7635,7 @@
       }
       function renderPaste() {
         const wrap = document.createElement("div");
-        let html = `<h1 class="page-title">Paste Sales</h1>
+        let html = `<h1 class="page-title">POS Sales Import</h1>
   <p class="page-sub">Paste rows, or import a file, from your POS sales report to deduct sold items from stock.</p>
   <div class="panel">
     <div class="panel-head"><h3>1. Set the sales date, then paste rows or import a file</h3>
@@ -6845,10 +7716,7 @@
             state.pasteRows = rows;
             renderApp();
           } catch (err) {
-            toast(
-              "Could not read file — check it's a valid Excel/CSV.",
-              true,
-            );
+            toast("Could not read file — check it's a valid Excel/CSV.", true);
           }
         };
         reader.readAsBinaryString(file);
@@ -6869,10 +7737,7 @@
       async function confirmPaste() {
         const rows = state.pasteRows.filter((r) => r.sku);
         if (rows.length === 0) {
-          toast(
-            "Nothing to apply — map or ignore unmatched rows first.",
-            true,
-          );
+          toast("Nothing to apply — map or ignore unmatched rows first.", true);
           return;
         }
         const recDate =
@@ -6948,7 +7813,7 @@
       }
 
       /* ---------------- STOCK IN ---------------- */
-      function renderStockIn() {
+      function renderGoodsReceived() {
         const wrap = document.createElement("div");
         const items = state.stock[state.outlet] || [];
         if (!state.stockInDraft)
@@ -6960,15 +7825,19 @@
             lines: [],
           };
         const d = state.stockInDraft;
-        let html = `<h1 class="page-title">Stock In</h1><p class="page-sub">Record deliveries and purchases arriving at ${esc(state.outlet)}.</p>
-  <div class="pill-tabs">
-    <div class="pill-tab ${state.stockInSub !== "report" ? "active" : ""}" onclick="state.stockInSub='entry';renderApp()">Record Stock In</div>
-    <div class="pill-tab ${state.stockInSub === "report" ? "active" : ""}" onclick="state.stockInSub='report';renderApp()">Expense Report</div>
-  </div>`;
-        if (state.stockInSub === "report") {
-          html += renderExpenseReportHtml();
-          wrap.innerHTML = html;
-          return wrap;
+        const awaiting = (state.pos[state.outlet] || []).filter(
+          (po) => po.status === "sent",
+        );
+        let html = `<h1 class="page-title">Goods Received</h1><p class="page-sub">Receive deliveries into ${esc(state.outlet)} — against a purchase order, or directly when there is no PO.</p>`;
+        if (awaiting.length) {
+          html += `<div class="panel"><div class="panel-head"><h3>Awaiting receipt</h3><span class="tag tag-blue">${awaiting.length} PO(s) sent</span></div>
+    <table><thead><tr><th>PO #</th><th>Date</th><th>Vendor</th><th class="right">Lines</th><th></th></tr></thead><tbody>`;
+          awaiting.forEach((po) => {
+            html += `<tr><td class="mono">${esc(po.poNumber)}</td><td class="mono">${fmtDate(po.orderDate || po.createdAt)}</td>
+        <td>${esc(po.supplier || "—")}</td><td class="right num">${po.lines.length}</td>
+        <td class="right"><button class="btn btn-ghost btn-sm" onclick="openPODetail('${po.id}')">Receive &rarr;</button></td></tr>`;
+          });
+          html += `</tbody></table></div>`;
         }
 
         html += `<div class="panel"><div class="panel-head"><h3>Manual stock in (multiple items in one record)</h3></div>
@@ -7217,10 +8086,7 @@
             state.stockInRows = rows;
             renderApp();
           } catch (err) {
-            toast(
-              "Could not read file — check it's a valid Excel/CSV.",
-              true,
-            );
+            toast("Could not read file — check it's a valid Excel/CSV.", true);
           }
         };
         reader.readAsBinaryString(file);
@@ -7609,6 +8475,7 @@
                   '<span class="tag tag-muted">Count Adj.</span>',
                 "stock-count":
                   '<span class="tag tag-orange2">Stock Count</span>',
+                "cost-update": '<span class="tag tag-muted">Cost Update</span>',
                 "stock-in": '<span class="tag tag-teal">Stock In</span>',
                 "transfer-out": '<span class="tag tag-red">Transfer Out</span>',
                 "transfer-in": '<span class="tag tag-teal">Transfer In</span>',
@@ -8381,26 +9248,6 @@
             ],
           },
           {
-            label: "CATALOGUE",
-            color: "var(--blue)",
-            cards: [
-              {
-                id: "categories",
-                icon: "\u{1F4E6}",
-                title: "Category & Sub-Category",
-                desc: "Arrange how stock items are grouped",
-                meta: state.categories.length + " categories",
-              },
-              {
-                id: "suppliers",
-                icon: "\u{1F69A}",
-                title: "Supplier List",
-                desc: "Suppliers used in Stock In and Purchase Orders",
-                meta: state.suppliers.length + " suppliers",
-              },
-            ],
-          },
-          {
             label: "DOCUMENTS",
             color: "var(--amber)",
             cards: [
@@ -8780,10 +9627,7 @@
             );
             renderApp();
           } catch (err) {
-            toast(
-              "Could not read file — check it's a valid Excel/CSV.",
-              true,
-            );
+            toast("Could not read file — check it's a valid Excel/CSV.", true);
           }
         };
         reader.readAsBinaryString(file);
@@ -9133,10 +9977,7 @@
             );
             renderApp();
           } catch (err) {
-            toast(
-              "Could not read file — check it's a valid Excel/CSV.",
-              true,
-            );
+            toast("Could not read file — check it's a valid Excel/CSV.", true);
           }
         };
         reader.readAsBinaryString(file);
@@ -9265,10 +10106,7 @@
             );
             renderApp();
           } catch (err) {
-            toast(
-              "Could not read file — check it's a valid Excel/CSV.",
-              true,
-            );
+            toast("Could not read file — check it's a valid Excel/CSV.", true);
           }
         };
         reader.readAsBinaryString(file);
